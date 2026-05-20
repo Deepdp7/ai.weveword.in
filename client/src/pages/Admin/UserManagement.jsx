@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Search, UserX, UserCheck, Crown, Trash2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
-import { API_BASE } from '../../utils/api';
 
-const API = API_BASE;
+const API = 'http://localhost:5000/api';
 axios.defaults.withCredentials = true;
 
 const PLAN_BADGE = {

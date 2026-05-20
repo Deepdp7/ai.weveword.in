@@ -1,14 +1,9 @@
 import axios from 'axios';
-import { Capacitor } from '@capacitor/core';
 
 const getApiBase = () => {
   const savedUrl = localStorage.getItem('kolomflow_api_url');
   if (savedUrl) return savedUrl;
 
-  if (Capacitor.isNativePlatform()) {
-    // 10.0.2.2 is the special Android emulator loopback IP to contact the host machine
-    return import.meta.env.VITE_API_URL || 'http://10.0.2.2:5000/api';
-  }
   return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 };
 

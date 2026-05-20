@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Coins, Zap, Crown, Star, Check, TrendingUp, History, PlayCircle, AlertCircle } from 'lucide-react';
-import { API_BASE } from '../../utils/api';
-import { isNative, showRewardedVideoAd } from '../../utils/capacitorHelper';
 
-const API = API_BASE;
+const API = 'http://localhost:5000/api';
 axios.defaults.withCredentials = true;
 
 const PACK_ICONS = { starter: Zap, popular: Star, pro: Crown, elite: Crown };
@@ -96,23 +94,13 @@ export default function CreditShop() {
   };
 
   const handleAdReward = async () => {
-    setError('');
-    await showRewardedVideoAd(
-      async (reward) => {
-        try {
-          const { data } = await axios.post(`${API}/payments/credits/ad-reward`, { adType: '30sec' });
-          setBalance(b => ({ ...b, credits: data.newBalance }));
-          alert(`🎉 +${data.creditsEarned} credits earned for watching an ad!`);
-          const txRes = await axios.get(`${API}/payments/transactions`);
-          setTransactions(txRes.data.transactions || []);
-        } catch (err) {
-          setError(err.response?.data?.message || 'Could not award ad credits.');
-        }
-      },
-      (err) => {
-        setError('Failed to show rewarded ad. Please try again.');
-      }
-    );
+    try {
+      const { data } = await axios.post(`${API}/payments/credits/ad-reward`, { adType: '30sec' });
+      setBalance(b => ({ ...b, credits: data.newBalance }));
+      alert(`🎉 +${data.creditsEarned} credits earned for watching an ad!`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not award ad credits.');
+    }
   };
 
   const txIcon = (type) => {

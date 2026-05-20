@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Upload, FileText, Loader2, Download, CheckCircle2, ArrowLeft, AlertCircle, Cloud } from 'lucide-react';
 import axios from 'axios';
-import { API_BASE } from '../../utils/api';
-import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = API_BASE;
+const API = 'http://localhost:5000/api';
 axios.defaults.withCredentials = true;
 
 const TOOL_CONFIG = {
@@ -128,9 +126,14 @@ export default function GenericConverter() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     const url = window.URL.createObjectURL(result.blob);
-                    await downloadOrShareFile(url, result.fileName);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', result.fileName);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.parentNode.removeChild(link);
                     window.URL.revokeObjectURL(url);
                   }}
                   className="px-8 py-3 bg-white border-2 border-brand-600 text-brand-600 hover:bg-brand-50 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
@@ -144,7 +147,7 @@ export default function GenericConverter() {
                       const uploadData = new FormData();
                       uploadData.append('file', new File([result.blob], result.fileName, { type: 'application/pdf' }));
                       uploadData.append('toolSource', 'pdf');
-                      await axios.post(`${API}/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      await axios.post(`http://localhost:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       alert('Saved to Cloud Library!');
                     } catch (e) { alert('Failed to save to cloud.'); }
                     setIsSavingCloud(false);

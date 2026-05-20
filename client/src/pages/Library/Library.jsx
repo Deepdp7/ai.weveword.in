@@ -1,24 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Search, Folder, File, Image as ImageIcon, FileText, Video, Download, Trash2, Share2, Filter, MoreVertical, Upload, RefreshCw, AlertCircle } from 'lucide-react';
-import { API_BASE } from '../../utils/api';
-import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = API_BASE;
+const API = 'http://localhost:5000/api';
 axios.defaults.withCredentials = true;
-
-const getAssetUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://localhost:5000/')) {
-    const apiOrigin = new URL(API_BASE).origin;
-    return url.replace('http://localhost:5000', apiOrigin);
-  }
-  if (url.startsWith('/')) {
-    const apiOrigin = new URL(API_BASE).origin;
-    return `${apiOrigin}${url}`;
-  }
-  return url;
-};
 
 const FOLDERS = [
   { label: 'All', value: 'All' },
@@ -251,15 +236,15 @@ export default function Library() {
                   </div>
 
                   <div className="flex items-center gap-2 pt-4 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={async () => {
-                        const downloadUrl = getAssetUrl(file.fileUrl);
-                        await downloadOrShareFile(downloadUrl, file.fileName);
-                      }}
+                    <a
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={file.fileName}
                       className="flex-1 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <Download className="w-4 h-4" /> Download
-                    </button>
+                    </a>
                     <button className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                       <Share2 className="w-4 h-4" />
                     </button>

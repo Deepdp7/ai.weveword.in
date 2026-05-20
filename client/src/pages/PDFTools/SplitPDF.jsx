@@ -3,8 +3,6 @@ import { useDropzone } from 'react-dropzone';
 import { ArrowLeft, UploadCloud, FileText, Scissors, Loader2, X, Download, Cloud } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { API_BASE } from '../../utils/api';
-import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
 export default function SplitPDF() {
   const [file, setFile] = useState(null);
@@ -44,7 +42,7 @@ export default function SplitPDF() {
     formData.append('ranges', ranges);
 
     try {
-      const response = await axios.post(`${API_BASE}/pdf/split`, formData, {
+      const response = await axios.post(`http://localhost:5000/api/pdf/split`, formData, {
         responseType: 'blob'
       });
       
@@ -135,9 +133,14 @@ export default function SplitPDF() {
               ) : (
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       const url = window.URL.createObjectURL(new Blob([resultBlob]));
-                      await downloadOrShareFile(url, 'Extracted_KolomFlow.pdf');
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', 'Extracted_KolomFlow.pdf');
+                      document.body.appendChild(link);
+                      link.click();
+                      link.parentNode.removeChild(link);
                       window.URL.revokeObjectURL(url);
                     }}
                     className="flex-1 py-4 bg-white border border-brand-600 text-brand-600 font-bold rounded-xl hover:bg-brand-50 transition-colors flex items-center justify-center gap-2 shadow-sm text-lg"
@@ -151,7 +154,7 @@ export default function SplitPDF() {
                         const uploadData = new FormData();
                         uploadData.append('file', new File([resultBlob], 'Extracted_KolomFlow.pdf', { type: 'application/pdf' }));
                         uploadData.append('toolSource', 'pdf');
-                        await axios.post(`${API_BASE}/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        await axios.post(`http://localhost:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                         alert('Saved to Cloud Library!');
                       } catch (e) { alert('Failed to save to cloud.'); }
                       setIsSavingCloud(false);

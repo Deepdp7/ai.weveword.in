@@ -22,10 +22,10 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 import { useToast } from "../../components/toastStore";
-import { API_BASE } from "../../utils/api";
-import { isNative, downloadOrShareFile } from "../../utils/capacitorHelper";
 import confetti from "canvas-confetti";
 import { jsPDF } from "jspdf";
+
+const API_BASE = "http://localhost:5000/api";
 
 const FONTS = [
   { name: "Dancing Script", family: "'Dancing Script', cursive" },
@@ -392,14 +392,7 @@ export default function Studio() {
       const fileName = `KolomFlow_${Date.now()}.pdf`;
 
       if (type === 'download') {
-        if (isNative()) {
-          const blob = pdf.output('blob');
-          const blobUrl = URL.createObjectURL(blob);
-          await downloadOrShareFile(blobUrl, fileName);
-          URL.revokeObjectURL(blobUrl);
-        } else {
-          pdf.save(fileName);
-        }
+        pdf.save(fileName);
         clearToasts();
         addToast("PDF Downloaded successfully!", "success");
         triggerSuccessEffect();
@@ -441,7 +434,12 @@ export default function Studio() {
 
       if (type === 'download') {
         const url = window.URL.createObjectURL(blob);
-        await downloadOrShareFile(url, fileName);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         clearToasts();
         addToast("PDF Downloaded successfully!", "success");

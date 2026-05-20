@@ -11,10 +11,8 @@ import { useToast } from '../../components/toastStore';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
-import { API_BASE } from '../../utils/api';
-import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = API_BASE;
+const API = 'http://localhost:5000/api';
 axios.defaults.withCredentials = true;
 
 /* ─────────────────────── TEMPLATE DATA ─────────────────────── */
@@ -774,14 +772,11 @@ export default function PPTMaker() {
     return pdf;
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     setIsGenerating(true);
     addToast('Generating PDF...', 'loading');
     try {
-      const blob = buildPDF().output('blob');
-      const url = window.URL.createObjectURL(blob);
-      await downloadOrShareFile(url, 'Presentation.pdf');
-      window.URL.revokeObjectURL(url);
+      buildPDF().save('Presentation.pdf');
       clearToasts(); addToast('Downloaded!', 'success'); triggerConfetti();
     } catch (e) { clearToasts(); addToast('Export failed.', 'error'); }
     finally { setIsGenerating(false); }
@@ -1007,10 +1002,7 @@ export default function PPTMaker() {
         }
       });
 
-      const blob = await pptx.write('blob');
-      const url = window.URL.createObjectURL(blob);
-      await downloadOrShareFile(url, 'Presentation.pptx');
-      window.URL.revokeObjectURL(url);
+      await pptx.writeFile({ fileName: 'Presentation.pptx' });
       clearToasts(); addToast('PowerPoint downloaded!', 'success'); triggerConfetti();
     } catch (e) {
       console.error(e);

@@ -1,11 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, SlidersHorizontal, Cloud, Camera } from 'lucide-react';
+import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight, Cloud } from 'lucide-react';
 import axios from 'axios';
-import { API_BASE } from '../../utils/api';
-import { isNative, takePhoto, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = `${API_BASE}/scan-fix`;
+const API = 'http://localhost:5000/api/scan-fix';
 axios.defaults.withCredentials = true;
 
 export default function ScanAndFix() {
@@ -31,18 +29,6 @@ export default function ScanAndFix() {
     }
   }, []);
 
-  const handleCameraCapture = async () => {
-    try {
-      const dataUrl = await takePhoto();
-      if (dataUrl) {
-        setOriginalImage(dataUrl);
-        setProcessedUrl(null);
-      }
-    } catch (err) {
-      console.warn('Camera capture cancelled or failed:', err);
-    }
-  };
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
@@ -64,14 +50,19 @@ export default function ScanAndFix() {
     }
   };
 
-  const downloadResult = async () => {
+  const downloadResult = () => {
     if (!processedUrl) return;
-    await downloadOrShareFile(processedUrl, `Restored_${Date.now()}.jpg`);
+    const link = document.createElement('a');
+    link.href = processedUrl;
+    link.download = `Restored_${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 py-6 px-4">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm">
             <Scan className="w-7 h-7" />
@@ -89,28 +80,13 @@ export default function ScanAndFix() {
       </div>
 
       {!originalImage ? (
-        <div className={`grid grid-cols-1 ${isNative() ? 'md:grid-cols-2' : ''} gap-6`}>
-          <div {...getRootProps()} className={`border-3 border-dashed rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-white ${isDragActive ? 'border-emerald-500 bg-emerald-50 scale-[1.01]' : 'border-gray-200 hover:border-emerald-400 hover:shadow-xl'} flex flex-col items-center justify-center min-h-[350px]`}>
-            <input {...getInputProps()} />
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-inner">
-              <UploadCloud className="w-10 h-10" />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-2 italic">CHOOSE PHOTO</h3>
-            <p className="text-gray-400 font-bold max-w-xs mx-auto text-xs uppercase tracking-wider">Drag & drop or tap to select image from files</p>
+        <div {...getRootProps()} className={`border-3 border-dashed rounded-[2rem] p-24 text-center transition-all cursor-pointer bg-white ${isDragActive ? 'border-emerald-500 bg-emerald-50 scale-[1.01]' : 'border-gray-200 hover:border-emerald-400 hover:shadow-xl'}`}>
+          <input {...getInputProps()} />
+          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <UploadCloud className="w-12 h-12" />
           </div>
-          
-          {isNative() && (
-            <div 
-              onClick={handleCameraCapture}
-              className="border-3 border-emerald-500 border-dashed rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-white hover:bg-emerald-50/20 hover:shadow-xl flex flex-col items-center justify-center min-h-[350px]"
-            >
-              <div className="w-20 h-20 bg-emerald-600 text-white rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
-                <Camera className="w-10 h-10" />
-              </div>
-              <h3 className="text-2xl font-black text-emerald-600 mb-2 italic">TAKE PHOTO</h3>
-              <p className="text-emerald-500/80 font-bold max-w-xs mx-auto text-xs uppercase tracking-wider">Use device camera to snap document</p>
-            </div>
-          )}
+          <h3 className="text-3xl font-black text-gray-900 mb-2 italic">DRAG & DROP</h3>
+          <p className="text-gray-400 font-bold max-w-sm mx-auto uppercase tracking-tighter">Blury notes? Dark photos? Old documents? Our AI fixes them all.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -123,56 +99,47 @@ export default function ScanAndFix() {
                     <Loader2 className="w-16 h-16 text-emerald-400 animate-spin" />
                     <Sparkles className="w-6 h-6 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
                   </div>
-                  <h3 className="text-white font-black mt-6 tracking-widest text-xl uppercase">Running AI Restoration...</h3>
+                  <p className="text-white mt-4 font-black tracking-widest text-xs uppercase animate-pulse">Running AI Enhancements...</p>
                 </div>
               )}
             </div>
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-xl shadow-gray-200/50">
-              <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
-                <SlidersHorizontal className="text-emerald-500" /> Enhancement
-              </h3>
-              
-              <div className="space-y-6">
+            <div className="bg-white rounded-[2.5rem] border border-gray-200 p-8 shadow-sm space-y-6">
+              <div className="flex items-center gap-3">
+                <SlidersHorizontal className="w-5 h-5 text-gray-700" />
+                <h3 className="text-xl font-bold text-gray-900">Fine-tune Output</h3>
+              </div>
+              <div className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">
+                  <div className="flex justify-between text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                     <span>Contrast Boost</span>
                     <span>{settings.contrast}%</span>
                   </div>
-                  <input type="range" min="100" max="250" value={settings.contrast} onChange={e => setSettings({...settings, contrast: e.target.value})} className="w-full accent-emerald-500 h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer" />
+                  <input type="range" min="100" max="250" value={settings.contrast} onChange={(e) => setSettings({...settings, contrast: parseInt(e.target.value)})} className="w-full accent-emerald-600" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">
+                  <div className="flex justify-between text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                     <span>Brightness</span>
                     <span>{settings.brightness}%</span>
                   </div>
-                  <input type="range" min="100" max="200" value={settings.brightness} onChange={e => setSettings({...settings, brightness: e.target.value})} className="w-full accent-emerald-500 h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer" />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <span className="text-xs font-black text-gray-500 uppercase tracking-widest">B&W Document Mode</span>
-                  <button onClick={() => setSettings({...settings, grayscale: settings.grayscale === 100 ? 0 : 100})} className={`w-12 h-6 rounded-full transition-all relative ${settings.grayscale === 100 ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.grayscale === 100 ? 'left-7' : 'left-1'}`} />
-                  </button>
+                  <input type="range" min="80" max="180" value={settings.brightness} onChange={(e) => setSettings({...settings, brightness: parseInt(e.target.value)})} className="w-full accent-emerald-600" />
                 </div>
               </div>
 
-              <div className="mt-8 space-y-3">
-                <button 
-                  onClick={handleEnhance} 
-                  disabled={isProcessing}
-                  className="w-full py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest"
-                >
-                  <Sparkles size={20} /> Apply AI Magic
-                </button>
-                {processedUrl && (
+              <div className="pt-4 border-t border-gray-100 space-y-3">
+                {!processedUrl ? (
+                  <button onClick={handleEnhance} disabled={isProcessing} className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+                    <Sparkles size={16} /> Enhance Photo
+                  </button>
+                ) : (
                   <div className="flex gap-2">
                     <button 
                       onClick={downloadResult}
                       className="flex-1 py-4 bg-gray-900 text-white font-black rounded-2xl shadow-xl shadow-gray-200 hover:bg-black hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
                     >
-                      <Download size={18} /> Download
+                      <Download size={16} /> Download
                     </button>
                     <button 
                       onClick={() => alert('Restoration successfully saved to your Cloud Library!')}

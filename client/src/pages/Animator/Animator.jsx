@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Download, Video, Music, Settings, Type, Loader2, Sparkles, CheckCircle2, Palette, Smartphone, Cloud } from 'lucide-react';
 import axios from 'axios';
-import { API_BASE } from '../../utils/api';
-import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
+const API_BASE = 'http://localhost:5000/api';
 const API = `${API_BASE}/animator`;
 axios.defaults.withCredentials = true;
 
@@ -223,7 +222,12 @@ export default function Animator() {
       
       if (type === 'download') {
         const url = URL.createObjectURL(blob);
-        await downloadOrShareFile(url, 'kolomflow-animation.webm');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'kolomflow-animation.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
         setExportProgress(100);

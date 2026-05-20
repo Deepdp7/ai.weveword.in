@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from './AuthContext';
 
 const CreditContext = createContext();
 
@@ -9,76 +7,50 @@ export const useCredits = () => {
 };
 
 export const CreditProvider = ({ children }) => {
-  const { user } = useAuth();
-  const [credits, setCredits] = useState(150);
+  const [credits, setCredits] = useState(150); // Default starting credits
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const fetchCreditData = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const [balRes, txRes] = await Promise.all([
-        axios.get('/payments/credits/balance'),
-        axios.get('/payments/transactions')
-      ]);
-      if (balRes.data && balRes.data.status === 'success') {
-        setCredits(balRes.data.credits);
-      }
-      if (txRes.data) {
-        // Support both array response or object containing array
-        const list = Array.isArray(txRes.data) ? txRes.data : txRes.data.transactions || [];
-        const formatted = list.map(tx => ({
-          id: tx._id || Date.now() + Math.random().toString(),
-          type: tx.credits > 0 ? 'earn' : 'spend',
-          amount: Math.abs(tx.credits),
-          reason: tx.description,
-          date: tx.createdAt
-        }));
-        setTransactions(formatted);
-      }
-    } catch (err) {
-      console.warn('Could not sync credits/transactions with backend:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Load from localStorage on mount
   useEffect(() => {
-    if (user) {
-      fetchCreditData();
-    } else {
-      setCredits(0);
-      setTransactions([]);
+    const savedCredits = localStorage.getItem('kolomflow_credits');
+    const savedTransactions = localStorage.getItem('kolomflow_transactions');
+    
+    if (savedCredits !== null) {
+      setCredits(parseInt(savedCredits, 10));
     }
-  }, [user]);
+    if (savedTransactions) {
+      setTransactions(JSON.parse(savedTransactions));
+    }
+  }, []);
 
-  const addCredits = async (amount, reason) => {
-    // Refresh from backend to sync
-    await fetchCreditData();
-    // Local fallback update for instant UI feedback
+  // Save to localStorage whenever credits or transactions change
+  useEffect(() => {
+    localStorage.setItem('kolomflow_credits', credits.toString());
+    localStorage.setItem('kolomflow_transactions', JSON.stringify(transactions));
+  }, [credits, transactions]);
+
+  const addCredits = (amount, reason) => {
     setCredits((prev) => prev + amount);
     setTransactions((prev) => [
-      { id: Date.now().toString(), type: 'earn', amount, reason, date: new Date().toISOString() },
+      { id: Date.now(), type: 'earn', amount, reason, date: new Date().toISOString() },
       ...prev
     ]);
   };
 
-  const deductCredits = async (amount, reason) => {
-    // Local fallback update
+  const deductCredits = (amount, reason) => {
     if (credits >= amount) {
       setCredits((prev) => prev - amount);
       setTransactions((prev) => [
-        { id: Date.now().toString(), type: 'spend', amount, reason, date: new Date().toISOString() },
+        { id: Date.now(), type: 'spend', amount, reason, date: new Date().toISOString() },
         ...prev
       ]);
       return true;
     }
-    return false;
+    return false; // Not enough credits
   };
 
   return (
-    <CreditContext.Provider value={{ credits, transactions, loading, fetchCreditData, addCredits, deductCredits }}>
+    <CreditContext.Provider value={{ credits, transactions, addCredits, deductCredits }}>
       {children}
     </CreditContext.Provider>
   );
