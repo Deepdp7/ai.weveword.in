@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Upload, FileText, Loader2, Download, CheckCircle2, ArrowLeft, AlertCircle, Cloud } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../../utils/api';
+import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = 'http://localhost:5000/api';
+const API = API_BASE;
 axios.defaults.withCredentials = true;
 
 const TOOL_CONFIG = {
@@ -126,14 +128,10 @@ export default function GenericConverter() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const url = window.URL.createObjectURL(result.blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', result.fileName);
-                    document.body.appendChild(link);
-                    link.click();
-                    link.parentNode.removeChild(link);
+                    await downloadOrShareFile(url, result.fileName);
+                    window.URL.revokeObjectURL(url);
                   }}
                   className="px-8 py-3 bg-white border-2 border-brand-600 text-brand-600 hover:bg-brand-50 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
                 >

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, IndianRupee, Coins, FileText, TrendingUp, ArrowUpRight, UserCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_BASE } from '../../utils/api';
 
-const API = 'http://localhost:5000/api';
+const API = API_BASE;
 axios.defaults.withCredentials = true;
 
 const formatINR = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);

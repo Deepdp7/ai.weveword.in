@@ -1,23 +1,39 @@
 import { useState } from 'react';
 import { useCredits } from '../../context/CreditContext';
 import { Wallet as WalletIcon, PlaySquare, TrendingUp, TrendingDown, Clock, ShieldCheck, PlusCircle } from 'lucide-react';
+import axios from 'axios';
+import { API_BASE } from '../../utils/api';
+import { showRewardedVideoAd } from '../../utils/capacitorHelper';
 
 export default function Wallet() {
-  const { credits, transactions, addCredits } = useCredits();
+  const { credits, transactions, fetchCreditData } = useCredits();
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [adMessage, setAdMessage] = useState('');
   const [isBuying, setIsBuying] = useState(false);
 
-  const handleWatchAd = () => {
+  const handleWatchAd = async () => {
     setIsWatchingAd(true);
-    setAdMessage('Playing Ad... Please wait.');
-    
-    // Simulate 3-second ad
-    setTimeout(() => {
-      addCredits(5, 'Watched Advertisement');
-      setIsWatchingAd(false);
-      setAdMessage('');
-    }, 3000);
+    setAdMessage('Loading Ad...');
+    await showRewardedVideoAd(
+      async (reward) => {
+        setAdMessage('Awarding credits...');
+        try {
+          const { data } = await axios.post(`${API_BASE}/payments/credits/ad-reward`, { adType: '30sec' });
+          await fetchCreditData();
+          alert(`🎉 +${data.creditsEarned} credits earned for watching an ad!`);
+        } catch (err) {
+          alert('Could not award ad credits: ' + (err.response?.data?.message || err.message));
+        } finally {
+          setIsWatchingAd(false);
+          setAdMessage('');
+        }
+      },
+      (err) => {
+        alert('Failed to play ad. Please try again.');
+        setIsWatchingAd(false);
+        setAdMessage('');
+      }
+    );
   };
 
   const handleBuyCredits = (amount, price) => {

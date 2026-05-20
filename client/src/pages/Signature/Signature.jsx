@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { PenTool, Type, Download, Trash2, CheckCircle2, Save, Loader2, Image as ImageIcon } from 'lucide-react';
+import { PenTool, Type, Download, Trash2, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import axios from 'axios';
+import { API_BASE } from '../../utils/api';
+import { downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = 'http://localhost:5000/api';
+const API = API_BASE;
 axios.defaults.withCredentials = true;
 
 const FONTS = [
@@ -80,13 +82,8 @@ export default function Signature() {
     }
   };
 
-  const downloadSignature = (url) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'Signature.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadSignature = async (url) => {
+    await downloadOrShareFile(url, 'Signature.png');
   };
 
   return (

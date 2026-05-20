@@ -22,9 +22,10 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 import { useToast } from "../../components/toastStore";
+import { API_BASE } from "../../utils/api";
+import { isNative, downloadOrShareFile } from "../../utils/capacitorHelper";
 import confetti from "canvas-confetti";
 import { jsPDF } from "jspdf";
-import { toJpeg } from "html-to-image";
 
 const FONTS = [
   { name: "Dancing Script", family: "'Dancing Script', cursive" },
@@ -52,6 +53,70 @@ const FONTS = [
   { name: "Sue Ellen Francisco", family: "'Sue Ellen Francisco', cursive" },
 ];
 
+const loadScript = (src) => {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "true") {
+        resolve();
+      } else {
+        existing.addEventListener("load", () => resolve());
+        existing.addEventListener("error", (e) => reject(e));
+      }
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.dataset.loaded = "false";
+    script.onload = () => {
+      script.dataset.loaded = "true";
+      resolve();
+    };
+    script.onerror = (e) => reject(e);
+    document.head.appendChild(script);
+  });
+};
+
+const loadLibrary = async (name) => {
+  if (name === "mammoth") {
+    try {
+      const lib = "mammoth";
+      const mod = await import(/* @vite-ignore */ lib);
+      return mod.default || mod;
+    } catch (e) {
+      console.warn("mammoth local import failed, falling back to CDN", e);
+      if (window.mammoth) return window.mammoth;
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.2/mammoth.browser.min.js");
+      return window.mammoth;
+    }
+  }
+  if (name === "papaparse") {
+    try {
+      const lib = "papaparse";
+      const mod = await import(/* @vite-ignore */ lib);
+      return mod.default || mod;
+    } catch (e) {
+      console.warn("papaparse local import failed, falling back to CDN", e);
+      if (window.Papa) return window.Papa;
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js");
+      return window.Papa;
+    }
+  }
+  if (name === "pdfjs-dist") {
+    try {
+      const lib = "pdfjs-dist";
+      const mod = await import(/* @vite-ignore */ lib);
+      return mod.default || mod;
+    } catch (e) {
+      console.warn("pdfjs-dist local import failed, falling back to CDN", e);
+      if (window.pdfjsLib) return window.pdfjsLib;
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+      return window.pdfjsLib;
+    }
+  }
+};
+
 export default function Studio() {
   const [engine, setEngine] = useState("local");
   const [inkType, setInkType] = useState("gel");
@@ -61,6 +126,7 @@ export default function Studio() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGoogleDriveLoading, setIsGoogleDriveLoading] = useState(false);
   const [pages, setPages] = useState([]);
   const [previewPages, setPreviewPages] = useState([]);
   const [font, setFont] = useState(FONTS[0]);
@@ -76,7 +142,9 @@ export default function Studio() {
   const [showMobilePanel, setShowMobilePanel] = useState(false);
   const [viewMode, setViewMode] = useState("list");
   const [showImportMenu, setShowImportMenu] = useState(false);
+
   const importMenuRef = useRef(null);
+  const canvasRefs = useRef([]);
 
   const { user } = useAuth();
   const { addToast, clearToasts } = useToast();
@@ -90,12 +158,19 @@ export default function Studio() {
 
   const currentConfig = PAGE_CONFIGS[pageSize] || PAGE_CONFIGS.a4;
 
+  // ── Animated confetti success burst ──────────────────────────────────
   const triggerSuccessEffect = () => {
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    const duration = 3 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) return clearInterval(interval);
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
   };
 
   const INK_STYLES = {
@@ -109,17 +184,17 @@ export default function Studio() {
     const lh = fontSize * lineHeight;
     switch (theme) {
       case 'school':
-        return { 
+        return {
           backgroundColor: '#ffffff',
           backgroundImage: `repeating-linear-gradient(transparent, transparent ${lh - 1}px, rgba(59, 130, 246, 0.2) ${lh - 1}px, rgba(59, 130, 246, 0.2) ${lh}px)`,
           backgroundSize: `100% ${lh}px`,
           backgroundPosition: `0 ${80 + lh}px`
         };
       case 'engineering':
-        return { 
+        return {
           backgroundColor: '#ffffff',
-          backgroundImage: `linear-gradient(#10b98122 1px, transparent 1px), linear-gradient(90deg, #10b98122 1px, transparent 1px)`, 
-          backgroundSize: '20px 20px' 
+          backgroundImage: `linear-gradient(#10b98122 1px, transparent 1px), linear-gradient(90deg, #10b98122 1px, transparent 1px)`,
+          backgroundSize: '20px 20px'
         };
       case 'vintage':
         return { backgroundColor: '#fdf6e3' };
@@ -142,19 +217,16 @@ export default function Studio() {
 
   const generatePages = useCallback(() => {
     if (!text.trim()) return [];
-    
     const width = currentConfig.w;
     const height = currentConfig.h;
-    const marginX = 100; // left 100, right 60
+    const marginX = 100;
     const marginY = 80;
     const lhPx = fontSize * lineHeight;
     const maxLines = Math.max(1, Math.floor((height - marginY * 2) / lhPx));
-    
     const paragraphs = text.split(/\r?\n/);
     const newPages = [];
     let currentPageLines = [];
     let lineCount = 0;
-    
     const avgCharWidth = fontSize * 0.5 + letterSpacing;
     const maxCharsPerLine = Math.floor((width - marginX - 60) / avgCharWidth);
 
@@ -169,16 +241,13 @@ export default function Studio() {
         }
         continue;
       }
-      
       const words = para.split(/\s+/);
       let currentLine = "";
-      
       for (let word of words) {
         if ((currentLine + word).length > maxCharsPerLine && currentLine.length > 0) {
           currentPageLines.push(currentLine.trimEnd());
           currentLine = word + " ";
           lineCount++;
-          
           if (lineCount >= maxLines) {
             newPages.push([...currentPageLines]);
             currentPageLines = [];
@@ -188,7 +257,6 @@ export default function Studio() {
           currentLine += word + " ";
         }
       }
-      
       if (currentLine) {
         currentPageLines.push(currentLine.trimEnd());
         lineCount++;
@@ -199,11 +267,7 @@ export default function Studio() {
         }
       }
     }
-    
-    if (currentPageLines.length > 0) {
-      newPages.push([...currentPageLines]);
-    }
-    
+    if (currentPageLines.length > 0) newPages.push([...currentPageLines]);
     return newPages;
   }, [text, fontSize, lineHeight, letterSpacing, pageSize]);
 
@@ -211,25 +275,36 @@ export default function Studio() {
     setPages(generatePages());
   }, [generatePages]);
 
+  // ── Load Google Fonts ─────────────────────────────────────────────────
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Satisfy&family=Homemade+Apple&family=Shadows+Into+Light&family=Indie+Flower&family=Kalam:wght@400;700&family=Permanent+Marker&family=Gochi+Hand&family=Patrick+Hand&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    return () => { if (link.parentNode) link.parentNode.removeChild(link); };
+  }, []);
+
+  // ── Import text from PDF Tools via localStorage ───────────────────────
+  useEffect(() => {
+    const importedText = localStorage.getItem('studio_import_text');
+    if (importedText) {
+      setText(importedText);
+      localStorage.removeItem('studio_import_text');
+      addToast("Text imported from PDF Tools!", "success");
+    }
+  }, []);
+
+  // ── AI Cloud Preview ──────────────────────────────────────────────────
   const handleGenerate = async () => {
     if (!text.trim()) return;
-    
     setIsGenerating(true);
-    addToast("Generating your masterpiece...", "loading");
+    addToast("Rendering on AI Cloud...", "loading");
     try {
-      const { data } = await axios.post('http://localhost:5000/api/studio/render', {
-        text,
-        color: inkColor,
-        paperStyle: pageTheme,
-        fontSize,
-        letterSpacing,
-        wordSpacing,
-        fontFamily: font.name,
-        showMargin,
-        isHumanized,
-        pageSize
+      const { data } = await axios.post(`${API_BASE}/studio/render`, {
+        text, color: inkColor, paperStyle: pageTheme,
+        fontSize, letterSpacing, wordSpacing,
+        fontFamily: font.name, showMargin, isHumanized, pageSize
       });
-      
       setPreviewPages(data.pages);
       clearToasts();
       addToast("Preview generated!", "success");
@@ -241,6 +316,7 @@ export default function Studio() {
     }
   };
 
+  // ── Export dispatcher ─────────────────────────────────────────────────
   const handleExport = async (type = 'download') => {
     if (engine === 'local') {
       await handleExportLocal(type);
@@ -249,105 +325,134 @@ export default function Studio() {
     }
   };
 
+  // ── Local Export (html2canvas with oklch sanitization) ────────────────
   const handleExportLocal = async (type = 'download') => {
     if (pages.length === 0) return;
-    
     setIsExporting(true);
-    addToast(type === 'download' ? "Generating high-quality PDF..." : "Saving to Cloud Library...", "loading");
-    
+    addToast(type === 'download' ? "Generating PDF..." : "Saving to Cloud Library...", "loading");
+
     try {
+      await document.fonts.ready;
+
+      const html2canvas = (await import("html2canvas")).default;
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'px',
-        format: [currentConfig.w, currentConfig.h]
+        format: [currentConfig.w, currentConfig.h],
+        compress: true,
       });
-      
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
       const pageElements = document.querySelectorAll('.pdf-export-page');
-      
+
       for (let i = 0; i < pageElements.length; i++) {
-        const imgData = await toJpeg(pageElements[i], {
-          pixelRatio: 2,
-          quality: 0.95,
-          width: currentConfig.w,
-          height: currentConfig.h,
-          style: {
-            transform: 'none',
-            margin: '0',
-            padding: '0'
-          },
-          backgroundColor: pageTheme === 'vintage' ? '#fdf6e3' : pageTheme === 'burnt' ? '#c19a6b' : '#ffffff',
+        addToast(`Rendering page ${i + 1} of ${pageElements.length}...`, "loading");
+        await new Promise(r => setTimeout(r, 200));
+
+        const canvas = await html2canvas(pageElements[i], {
+          scale: 1.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          imageTimeout: 15000,
+          onclone: (clonedDoc) => {
+            try {
+              // Remove style tags with unsupported CSS color spaces
+              Array.from(clonedDoc.getElementsByTagName('style')).forEach(st => {
+                const txt = st.innerHTML || '';
+                if (txt.includes('oklch') || txt.includes('oklab') || txt.includes('color(')) {
+                  st.remove();
+                }
+              });
+            } catch (e) {
+              console.warn('Style sanitization skipped', e);
+            }
+            const fix = clonedDoc.createElement('style');
+            fix.innerHTML = `
+              * { box-sizing: border-box; }
+              .pdf-export-page { background: white !important; box-shadow: none !important; margin: 0 !important; }
+            `;
+            clonedDoc.head.appendChild(fix);
+          }
         });
-        
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.85);
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, currentConfig.w, currentConfig.h);
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+
+        // Free memory
+        canvas.width = 0;
+        canvas.height = 0;
+        await new Promise(r => setTimeout(r, 300));
       }
-      
+
+      const fileName = `KolomFlow_${Date.now()}.pdf`;
+
       if (type === 'download') {
-        pdf.save(`KolomFlow_${Date.now()}.pdf`);
+        if (isNative()) {
+          const blob = pdf.output('blob');
+          const blobUrl = URL.createObjectURL(blob);
+          await downloadOrShareFile(blobUrl, fileName);
+          URL.revokeObjectURL(blobUrl);
+        } else {
+          pdf.save(fileName);
+        }
         clearToasts();
         addToast("PDF Downloaded successfully!", "success");
         triggerSuccessEffect();
       } else {
         const blob = pdf.output('blob');
         const uploadData = new FormData();
-        uploadData.append('file', new File([blob], `KolomFlow_${Date.now()}.pdf`, { type: 'application/pdf' }));
+        uploadData.append('file', new File([blob], fileName, { type: 'application/pdf' }));
         uploadData.append('toolSource', 'studio');
-        await axios.post('http://localhost:5000/api/files/upload', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await axios.post(`${API_BASE}/files/upload`, uploadData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         clearToasts();
         addToast("PDF Saved to Cloud successfully!", "success");
         triggerSuccessEffect();
       }
     } catch (error) {
-      console.error('Failed to export PDF:', error);
-      addToast('Failed to export PDF. Please try again.', "error");
+      console.error('Export failed:', error);
+      clearToasts();
+      addToast(error.message || "Export failed. Please try again.", "error");
     } finally {
       setIsExporting(false);
     }
   };
 
+  // ── Server Export (AI Cloud blob) ─────────────────────────────────────
   const handleExportServer = async (type = 'download') => {
     if (!text.trim()) return;
-    
     setIsExporting(true);
     addToast(type === 'download' ? "Downloading PDF from Cloud..." : "Saving PDF to Cloud Library...", "loading");
-    
     try {
-      const response = await axios.post('http://localhost:5000/api/studio/export-pdf', {
-        text,
-        color: inkColor,
-        paperStyle: pageTheme,
-        fontSize,
-        letterSpacing,
-        wordSpacing,
-        fontFamily: font.name,
-        showMargin,
-        isHumanized,
-        pageSize
-      }, {
-        responseType: 'blob'
-      });
-      
+      const response = await axios.post(`${API_BASE}/studio/export-pdf`, {
+        text, color: inkColor, paperStyle: pageTheme,
+        fontSize, letterSpacing, wordSpacing,
+        fontFamily: font.name, showMargin, isHumanized, pageSize
+      }, { responseType: 'blob' });
+
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      
+      const fileName = `KolomFlow_${Date.now()}.pdf`;
+
       if (type === 'download') {
         const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `KolomFlow_${Date.now()}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        await downloadOrShareFile(url, fileName);
         window.URL.revokeObjectURL(url);
-        
         clearToasts();
         addToast("PDF Downloaded successfully!", "success");
         triggerSuccessEffect();
       } else {
         const uploadData = new FormData();
-        uploadData.append('file', new File([blob], `KolomFlow_${Date.now()}.pdf`, { type: 'application/pdf' }));
+        uploadData.append('file', new File([blob], fileName, { type: 'application/pdf' }));
         uploadData.append('toolSource', 'studio');
-        await axios.post('http://localhost:5000/api/files/upload', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        
+        await axios.post(`${API_BASE}/files/upload`, uploadData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         clearToasts();
         addToast("PDF Saved to Cloud successfully!", "success");
         triggerSuccessEffect();
@@ -360,19 +465,17 @@ export default function Studio() {
     }
   };
 
+  // ── AI Notes Enhancer ─────────────────────────────────────────────────
   const enhanceText = async () => {
     if (!text || text.length < 10) {
       addToast("Please provide more text to enhance.", "info");
       return;
     }
-
     setIsEnhancing(true);
     addToast("AI is analyzing and structuring your notes...", "loading");
-
     setTimeout(() => {
-      const lines = text.split("\n").filter((l) => l.trim().length > 0);
+      const lines = text.split("\n").filter(l => l.trim().length > 0);
       const title = lines[0].toUpperCase();
-
       const enhanced =
         `📝 ${title}\n\n` +
         `━━━━━━━━━━━━━━━\n` +
@@ -383,7 +486,6 @@ export default function Studio() {
         `💡 HANDWRITTEN SUMMARY:\n` +
         `${text.substring(0, 150)}...\n\n` +
         `🔖 TAGS: #SmartNotes #Handwriting #Summary`;
-
       setText(enhanced);
       setIsEnhancing(false);
       clearToasts();
@@ -391,54 +493,276 @@ export default function Studio() {
     }, 1500);
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-
-    addToast("Extracting text from document...", "loading");
-    try {
-      const { data } = await axios.post('http://localhost:5000/api/studio/extract-text', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setText(data.text);
-      clearToasts();
-      addToast("Document imported!", "success");
-      setShowImportMenu(false);
-    } catch (error) {
-      addToast('Failed to extract text. Please ensure it is a valid .docx or .txt file.', "error");
-    }
-  };
-
+  // ── Close import menu on outside click ───────────────────────────────
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (importMenuRef.current && !importMenuRef.current.contains(event.target)) {
         setShowImportMenu(false);
       }
     };
-    if (showImportMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    if (showImportMenu) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showImportMenu]);
 
+  // ── Client-side file import ───────────────────────────────────────────
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setShowImportMenu(false);
+    await processImportedFile(file);
+  };
+
+  const processImportedFile = async (file) => {
+    const reader = new FileReader();
+
+    if (file.type === "text/plain") {
+      reader.onload = (e) => { if (e.target?.result) setText(e.target.result); };
+      reader.readAsText(file);
+      addToast("Text file imported!", "success");
+
+    } else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+      addToast("Reading document...", "loading");
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target?.result;
+        if (!arrayBuffer) return;
+        try {
+          const mammoth = await loadLibrary("mammoth");
+          const result = await mammoth.convertToHtml({ arrayBuffer });
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(result.value, "text/html");
+          let inTableCell = false;
+          let extractedText = "";
+          const processNode = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              extractedText += node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const el = node;
+              const tag = el.tagName.toLowerCase();
+              if (tag === 'tr') { node.childNodes.forEach(processNode); extractedText += "\n"; }
+              else if (tag === 'td' || tag === 'th') { inTableCell = true; node.childNodes.forEach(processNode); inTableCell = false; extractedText += " \t "; }
+              else if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) {
+                if (!inTableCell) extractedText += "\n";
+                node.childNodes.forEach(processNode);
+                if (!inTableCell) extractedText += "\n";
+              } else if (tag === 'br') { extractedText += "\n"; }
+              else if (['table', 'ul', 'ol'].includes(tag)) { extractedText += "\n"; node.childNodes.forEach(processNode); extractedText += "\n"; }
+              else if (tag === 'li') { extractedText += "• "; node.childNodes.forEach(processNode); extractedText += "\n"; }
+              else { node.childNodes.forEach(processNode); }
+            }
+          };
+          doc.body.childNodes.forEach(processNode);
+          setText(extractedText.replace(/\n{3,}/g, '\n\n').trim());
+          clearToasts();
+          addToast("Document imported with structure!", "success");
+        } catch (err) {
+          console.error(err);
+          clearToasts();
+          addToast("Failed to parse document file.", "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+
+    } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      addToast("Opening PDF...", "loading");
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target?.result;
+        if (!arrayBuffer) return;
+        try {
+          const pdfjsLib = await loadLibrary("pdfjs-dist");
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let fullText = "";
+          for (let i = 1; i <= pdf.numPages; i++) {
+            addToast(`Extracting text: Page ${i} of ${pdf.numPages}...`, "loading");
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            // Cluster items by Y coordinate to preserve table rows
+            const lines = [];
+            textContent.items.forEach((item) => {
+              const y = item.transform[5];
+              let line = lines.find(l => Math.abs(l.y - y) < 6);
+              if (!line) { line = { y, items: [] }; lines.push(line); }
+              line.items.push(item);
+            });
+            lines.sort((a, b) => b.y - a.y);
+            let pageText = "";
+            lines.forEach(line => {
+              const lineItems = line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+              let lineText = "";
+              let lastX = 0;
+              let lastWidth = 0;
+              lineItems.forEach((item) => {
+                const currentX = item.transform[4];
+                if (lastX > 0 && (currentX - (lastX + lastWidth)) > 15) lineText += " \t ";
+                else if (lastX > 0) lineText += " ";
+                lineText += item.str;
+                lastX = currentX;
+                lastWidth = item.width || 0;
+              });
+              pageText += lineText.trim() + "\n";
+            });
+            fullText += pageText + "\n";
+            await new Promise(r => setTimeout(r, 0));
+          }
+          setText(fullText.trim());
+          clearToasts();
+          addToast("PDF imported with structure!", "success");
+        } catch (err) {
+          console.error(err);
+          clearToasts();
+          addToast("Failed to parse PDF.", "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+
+    } else if (file.name.endsWith(".csv")) {
+      addToast("Parsing CSV...", "loading");
+      reader.onload = async (e) => {
+        const rawText = e.target?.result;
+        try {
+          const Papa = await loadLibrary("papaparse");
+          Papa.parse(rawText, {
+            complete: (results) => {
+              const csvText = results.data.map(row => row.join("  ")).join("\n");
+              setText(csvText);
+              clearToasts();
+              addToast("CSV imported!", "success");
+            }
+          });
+        } catch (err) {
+          clearToasts();
+          addToast("Failed to parse CSV.", "error");
+        }
+      };
+      reader.readAsText(file);
+
+    } else {
+      addToast("Attempting to read as text...", "loading");
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (result) { setText(result); clearToasts(); addToast("File imported!", "success"); }
+      };
+      reader.onerror = () => { clearToasts(); addToast("Unsupported or unreadable file.", "error"); };
+      reader.readAsText(file);
+    }
+  };
+
+  // ── Google Drive Picker ───────────────────────────────────────────────
+  const loadGooglePickerScript = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      if (window.google?.picker && window.google?.accounts?.oauth2) { resolve(); return; }
+      if (!document.getElementById("google-gis-script")) {
+        const gisScript = document.createElement("script");
+        gisScript.id = "google-gis-script";
+        gisScript.src = "https://accounts.google.com/gsi/client";
+        gisScript.async = true;
+        gisScript.defer = true;
+        document.head.appendChild(gisScript);
+      }
+      if (!document.getElementById("google-api-script")) {
+        const gapiScript = document.createElement("script");
+        gapiScript.id = "google-api-script";
+        gapiScript.src = "https://apis.google.com/js/api.js";
+        gapiScript.onload = () => window.gapi.load("picker", { callback: resolve });
+        gapiScript.onerror = () => reject(new Error("Failed to load Google API"));
+        document.head.appendChild(gapiScript);
+      } else {
+        if (window.gapi) window.gapi.load("picker", { callback: resolve });
+        else resolve();
+      }
+    });
+  }, []);
+
+  const handleGoogleDrivePick = async () => {
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!apiKey || !clientId || apiKey === "your_google_api_key_here") {
+      addToast("Google Drive not configured — add VITE_GOOGLE_API_KEY and VITE_GOOGLE_CLIENT_ID to .env", "error");
+      setShowImportMenu(false);
+      return;
+    }
+    setIsGoogleDriveLoading(true);
+    setShowImportMenu(false);
+    addToast("Opening Google Sign-in...", "loading");
+    try {
+      await loadGooglePickerScript();
+      let retryCount = 0;
+      while (!window.google?.accounts?.oauth2 && retryCount < 10) {
+        await new Promise(r => setTimeout(r, 500));
+        retryCount++;
+      }
+      if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services failed to load");
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: "https://www.googleapis.com/auth/drive.readonly",
+        callback: async (response) => {
+          if (response.error) throw response;
+          const accessToken = response.access_token;
+          clearToasts();
+          addToast("Authorized! Opening Picker...", "loading");
+          const google = window.google;
+          const picker = new google.picker.PickerBuilder()
+            .addView(new google.picker.DocsView()
+              .setIncludeFolders(false)
+              .setMimeTypes("text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv"))
+            .setOAuthToken(accessToken)
+            .setDeveloperKey(apiKey)
+            .setCallback(async (data) => {
+              if (data.action === google.picker.Action.PICKED) {
+                const doc = data.docs[0];
+                addToast(`Importing "${doc.name}"...`, "loading");
+                try {
+                  const fileRes = await fetch(
+                    `https://www.googleapis.com/drive/v3/files/${doc.id}?alt=media`,
+                    { headers: { Authorization: `Bearer ${accessToken}` } }
+                  );
+                  if (!fileRes.ok) throw new Error("Download failed");
+                  const blob = await fileRes.blob();
+                  const file = new File([blob], doc.name, { type: doc.mimeType });
+                  await processImportedFile(file);
+                } catch (err) {
+                  console.error(err);
+                  clearToasts();
+                  addToast("Failed to download file from Google Drive.", "error");
+                }
+              } else if (data.action === google.picker.Action.CANCEL) {
+                setIsGoogleDriveLoading(false);
+              }
+            })
+            .setTitle("Import from Google Drive")
+            .setSize(900, 550)
+            .build();
+          picker.setVisible(true);
+          setIsGoogleDriveLoading(false);
+        },
+      });
+      tokenClient.requestAccessToken({ prompt: "consent" });
+    } catch (err) {
+      console.error("Google Drive error:", err);
+      clearToasts();
+      setIsGoogleDriveLoading(false);
+      if (err?.error === "popup_closed_by_user") addToast("Sign-in cancelled.", "info");
+      else addToast("Google Drive connection failed. Check credentials in .env", "error");
+    }
+  };
+
+  // ── Page Preview Component ────────────────────────────────────────────
   const PagePreview = ({ lines, isExport, pageIndex }) => (
-    <div 
+    <div
       className={isExport ? "pdf-export-page" : "bg-white shadow-2xl rounded-sm border border-slate-200 transition-all duration-500 group flex-shrink-0"}
       style={{
         position: 'relative',
         overflow: 'hidden',
         width: `${currentConfig.w}px`,
         height: `${currentConfig.h}px`,
-        transform: isExport ? 'none' : 'scale(1)', 
+        transform: isExport ? 'none' : 'scale(1)',
         ...getThemeStyles(pageTheme)
       }}
     >
-      {showMargin && <div style={{ position: 'absolute', left: '80px', top: '0', bottom: '0', width: '2px', backgroundColor: 'rgba(248, 113, 113, 0.5)' }} />}
-      
-      <div 
+      {showMargin && (
+        <div style={{ position: 'absolute', left: '80px', top: '0', bottom: '0', width: '2px', backgroundColor: 'rgba(248, 113, 113, 0.5)' }} />
+      )}
+      <div
         style={{
           position: 'relative',
           zIndex: 10,
@@ -460,13 +784,13 @@ export default function Studio() {
         {lines.map((line, lIdx) => {
           const jitter = getJitter(pageIndex * 100 + lIdx);
           return (
-            <div 
-              key={lIdx} 
-              style={{ 
+            <div
+              key={lIdx}
+              style={{
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
                 minHeight: `${fontSize * lineHeight}px`,
-                transform: `translate(${jitter.x}px, ${jitter.y}px)` 
+                transform: `translate(${jitter.x}px, ${jitter.y}px)`
               }}
             >
               {line}
@@ -474,7 +798,6 @@ export default function Studio() {
           );
         })}
       </div>
-      
       {!isExport && (
         <div className="absolute top-4 right-4 bg-black/50 text-white text-[10px] px-2 py-1 rounded-md backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-50">
           Page {pageIndex + 1}
@@ -483,6 +806,7 @@ export default function Studio() {
     </div>
   );
 
+  // ── Render ────────────────────────────────────────────────────────────
   return (
     <>
       <div className="flex flex-col lg:flex-row h-full gap-0 lg:gap-6 relative">
@@ -503,6 +827,7 @@ export default function Studio() {
           </div>
 
           <div className="p-4 lg:p-0 space-y-4 lg:space-y-6 pb-8 lg:pb-0">
+            {/* Effects & Export Card */}
             <Card className="space-y-4 shadow-xl border-blue-100 shadow-blue-50">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Settings2 className="w-4 h-4 text-blue-600" /> Effects & Export
@@ -516,87 +841,145 @@ export default function Studio() {
                 <input type="checkbox" checked={isHumanized} onChange={(e) => setIsHumanized(e.target.checked)} className="w-4 h-4 rounded text-blue-600" />
               </label>
 
+              {/* Import Menu */}
               <div className="relative" ref={importMenuRef}>
-                <input type="file" accept=".txt,.docx" onChange={handleFileUpload} className="hidden" id="file-upload" />
-                <button onClick={() => setShowImportMenu(!showImportMenu)} className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm h-11 px-4 text-sm font-medium transition-all active:scale-95 cursor-pointer ${showImportMenu ? "ring-2 ring-blue-500/30 border-blue-300" : ""}`}>
-                  <FileUp className="w-4 h-4" /> Import Document
+                <input type="file" accept=".txt,.docx,.pdf,.csv" onChange={handleFileUpload} className="hidden" id="file-upload" />
+                <button
+                  onClick={() => setShowImportMenu(!showImportMenu)}
+                  className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm h-11 px-4 text-sm font-medium transition-all active:scale-95 cursor-pointer ${showImportMenu ? "ring-2 ring-blue-500/30 border-blue-300" : ""}`}
+                >
+                  <FileUp className="w-4 h-4" />
+                  Import Document
                   <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform duration-200 ${showImportMenu ? "rotate-180" : ""}`} />
                 </button>
 
                 {showImportMenu && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xl shadow-blue-100/40 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xl shadow-blue-100/40 z-50 overflow-hidden">
                     <div className="p-1.5">
-                      <button onClick={() => document.getElementById("file-upload")?.click()} className="flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-blue-50/80 transition-all group cursor-pointer">
+                      {/* Local File */}
+                      <button
+                        onClick={() => document.getElementById("file-upload")?.click()}
+                        className="flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-blue-50/80 transition-all group cursor-pointer"
+                      >
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200/60 flex items-center justify-center group-hover:from-blue-100 group-hover:to-blue-50 group-hover:border-blue-200 transition-all shadow-sm">
                           <HardDrive className="w-4 h-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
                         </div>
                         <div className="text-left flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">Local File</p>
-                          <p className="text-[10px] text-slate-400 group-hover:text-blue-400 transition-colors">.txt, .docx</p>
+                          <p className="text-[10px] text-slate-400 group-hover:text-blue-400 transition-colors">.txt, .pdf, .docx, .csv</p>
                         </div>
                         <Upload className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                      </button>
+
+                      <div className="mx-3 border-t border-slate-100" />
+
+                      {/* Google Drive */}
+                      <button
+                        onClick={handleGoogleDrivePick}
+                        disabled={isGoogleDriveLoading}
+                        className="flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-blue-50/80 transition-all group cursor-pointer disabled:opacity-50"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-50 to-green-50 border border-green-200/60 flex items-center justify-center group-hover:from-green-100 group-hover:to-emerald-50 group-hover:border-green-300 transition-all shadow-sm">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M4.433 22l-1.6-2.77L9.9 7.588h5.6l7.07 11.643-1.6 2.77H4.432z" fill="#3777E3" />
+                            <path d="M15.5 7.588L22.6 19.23l-1.6 2.77H14l-5.5-9.577L12.7 2h5.6L15.5 7.588z" fill="#FFCF63" />
+                            <path d="M2.833 19.23L9.9 7.588h5.6L8.43 19.23l-1.6 2.77H4.433l-1.6-2.77z" fill="#11A861" />
+                          </svg>
+                        </div>
+                        <div className="text-left flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 group-hover:text-green-700 transition-colors">
+                            {isGoogleDriveLoading ? "Connecting..." : "Google Drive"}
+                          </p>
+                          <p className="text-[10px] text-slate-400 group-hover:text-green-400 transition-colors">Import from cloud</p>
+                        </div>
+                        {isGoogleDriveLoading
+                          ? <Loader2 className="w-3.5 h-3.5 text-green-500 animate-spin" />
+                          : <Cloud className="w-3.5 h-3.5 text-slate-300 group-hover:text-green-400 transition-colors" />
+                        }
                       </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="pt-6 border-t border-slate-100 mt-2 space-y-3">
+              {/* Rendering Engine Toggle */}
+              <div className="pt-4 border-t border-slate-100 mt-2 space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rendering Engine</span>
                   <div className="flex bg-slate-100 p-1 rounded-xl">
-                    <button 
-                      onClick={() => setEngine("local")} 
-                      className={cn(
-                        "px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer",
-                        engine === "local" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                      )}
-                    >
-                      Local
-                    </button>
-                    <button 
-                      onClick={() => setEngine("server")} 
-                      className={cn(
-                        "px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer",
-                        engine === "server" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                      )}
-                    >
-                      AI Cloud
-                    </button>
+                    {["local", "server"].map(e => (
+                      <button
+                        key={e}
+                        onClick={() => setEngine(e)}
+                        className={cn(
+                          "px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer",
+                          engine === e ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        )}
+                      >
+                        {e === "local" ? "Local" : "AI Cloud"}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
+              {/* Buttons */}
               <div className="flex flex-col gap-3">
                 <div className="flex gap-2">
-                  <Button className="flex-1 justify-center gap-2 h-14 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50" onClick={() => handleExport('download')} disabled={isExporting || isGenerating}>
+                  <Button
+                    className="flex-1 justify-center gap-2 h-14 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+                    onClick={() => handleExport('download')}
+                    disabled={isExporting || isGenerating}
+                  >
                     <Download className="w-4 h-4" /> Download
                   </Button>
-                  <Button className="flex-1 justify-center gap-2 h-14 text-[10px] font-black uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={() => handleExport('cloud')} disabled={isExporting || isGenerating}>
+                  <Button
+                    className="flex-1 justify-center gap-2 h-14 text-[10px] font-black uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200"
+                    onClick={() => handleExport('cloud')}
+                    disabled={isExporting || isGenerating}
+                  >
                     <Cloud className="w-4 h-4" /> Save Cloud
                   </Button>
                 </div>
+
                 {engine === "local" ? (
-                  <Button className="justify-center gap-3 h-14 text-sm font-black uppercase tracking-widest w-full bg-slate-900 hover:bg-black text-white border-none" onClick={() => addToast("Preview updates automatically!", "success")} disabled={isExporting}>
+                  <Button
+                    className="justify-center gap-3 h-14 text-sm font-black uppercase tracking-widest w-full bg-slate-900 hover:bg-black text-white border-none"
+                    onClick={() => addToast("Preview updates automatically!", "success")}
+                    disabled={isExporting}
+                  >
                     <RefreshCw className="w-5 h-5" /> Auto Preview On
                   </Button>
                 ) : (
-                  <Button className="justify-center gap-3 h-14 text-sm font-black uppercase tracking-widest w-full bg-slate-900 hover:bg-black text-white border-none shadow-lg shadow-slate-200" onClick={handleGenerate} disabled={isExporting || isGenerating}>
-                    <RefreshCw className={cn("w-5 h-5", isGenerating && "animate-spin")} /> {isGenerating ? "Rendering..." : "Generate Preview"}
+                  <Button
+                    className="justify-center gap-3 h-14 text-sm font-black uppercase tracking-widest w-full bg-slate-900 hover:bg-black text-white border-none shadow-lg shadow-slate-200"
+                    onClick={handleGenerate}
+                    disabled={isExporting || isGenerating}
+                  >
+                    <RefreshCw className={cn("w-5 h-5", isGenerating && "animate-spin")} />
+                    {isGenerating ? "Rendering..." : "Generate Preview"}
                   </Button>
                 )}
               </div>
 
               <div className="pt-3 border-t border-slate-100">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-blue-600">AI Productivity</h4>
-                <Button className="w-full justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl shadow-blue-200 border-none h-11 text-white" onClick={enhanceText} disabled={isEnhancing}>
-                  {isEnhancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <SparklesIcon className="w-4 h-4" />} AI Notes Enhancer
+                <Button
+                  className="w-full justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl shadow-blue-200 border-none h-11 text-white"
+                  onClick={enhanceText}
+                  disabled={isEnhancing}
+                >
+                  {isEnhancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <SparklesIcon className="w-4 h-4" />}
+                  AI Notes Enhancer
                 </Button>
               </div>
             </Card>
 
+            {/* Page Setup Card */}
             <Card className="space-y-4 bg-white/80 backdrop-blur-sm border-blue-50">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><Layout className="w-4 h-4 text-blue-600" /> Page Setup</h3>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Layout className="w-4 h-4 text-blue-600" /> Page Setup
+              </h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -625,8 +1008,13 @@ export default function Studio() {
                       { id: "engineering", name: "Engineer", color: "bg-[linear-gradient(#10b981_1px,transparent_1px),linear-gradient(90deg,#10b981_1px,transparent_1px)] bg-[size:4px_4px]" },
                       { id: "vintage", name: "Vintage", color: "bg-orange-100" },
                       { id: "burnt", name: "Burnt", color: "bg-[#c19a6b] shadow-inner" },
-                    ].map((t) => (
-                      <button key={t.id} onClick={() => setPageTheme(t.id)} className={`h-10 rounded-lg border-2 transition-all overflow-hidden cursor-pointer ${pageTheme === t.id ? "border-blue-500 ring-2 ring-blue-500/20" : "border-slate-100 bg-white"}`} title={t.name}>
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setPageTheme(t.id)}
+                        className={`h-10 rounded-lg border-2 transition-all overflow-hidden cursor-pointer ${pageTheme === t.id ? "border-blue-500 ring-2 ring-blue-500/20" : "border-slate-100 bg-white"}`}
+                        title={t.name}
+                      >
                         <div className={`w-full h-full ${t.color}`} />
                       </button>
                     ))}
@@ -641,8 +1029,14 @@ export default function Studio() {
                       { id: "fountain", name: "Fountain", icon: SparklesIcon },
                       { id: "pencil", name: "Pencil", icon: Highlighter },
                       { id: "marker", name: "Marker", icon: Type },
-                    ].map((style) => (
-                      <button key={style.id} onClick={() => setInkType(style.id)} className={cn("p-2.5 rounded-lg border-2 flex items-center gap-2 transition-all cursor-pointer", inkType === style.id ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-50 text-slate-500 hover:border-slate-100")}>
+                    ].map(style => (
+                      <button
+                        key={style.id}
+                        onClick={() => setInkType(style.id)}
+                        className={cn("p-2.5 rounded-lg border-2 flex items-center gap-2 transition-all cursor-pointer",
+                          inkType === style.id ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-50 text-slate-500 hover:border-slate-100"
+                        )}
+                      >
                         <style.icon className="w-3.5 h-3.5" />
                         <span className="text-[10px] font-black uppercase tracking-wider">{style.name}</span>
                       </button>
@@ -660,40 +1054,54 @@ export default function Studio() {
                       <p className="text-[9px] text-slate-500 italic">Classic red line</p>
                     </div>
                   </div>
-                  <button onClick={() => setShowMargin(!showMargin)} className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 cursor-pointer ${showMargin ? "bg-blue-600" : "bg-slate-300"}`}>
+                  <button
+                    onClick={() => setShowMargin(!showMargin)}
+                    className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 cursor-pointer ${showMargin ? "bg-blue-600" : "bg-slate-300"}`}
+                  >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${showMargin ? "left-5" : "left-1"}`} />
                   </button>
                 </div>
               </div>
             </Card>
 
+            {/* Typography Card */}
             <Card className="space-y-4 border-slate-100">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><Type className="w-4 h-4" /> Typography</h3>
+              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <Type className="w-4 h-4" /> Typography
+              </h3>
               <div className="space-y-4">
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Font Style</label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={font.name} onChange={(e) => setFont(FONTS.find((f) => f.name === e.target.value) || FONTS[0])}>
-                    {FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+                  <select
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={font.name}
+                    onChange={(e) => setFont(FONTS.find(f => f.name === e.target.value) || FONTS[0])}
+                  >
+                    {FONTS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
                   </select>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 flex justify-between">Size <span>{fontSize}px</span></label>
-                    <input type="range" min="12" max="48" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className="w-full accent-blue-600 h-5" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 flex justify-between">Letter Spacing <span>{letterSpacing}</span></label>
-                    <input type="range" min="-2" max="10" step="0.5" value={letterSpacing} onChange={(e) => setLetterSpacing(Number(e.target.value))} className="w-full accent-blue-600 h-5" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 flex justify-between">Word Spacing <span>{wordSpacing}</span></label>
-                    <input type="range" min="-5" max="20" step="1" value={wordSpacing} onChange={(e) => setWordSpacing(Number(e.target.value))} className="w-full accent-blue-600 h-5" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 flex justify-between">Line Height <span>{lineHeight}</span></label>
-                    <input type="range" min="1.0" max="2.5" step="0.1" value={lineHeight} onChange={(e) => setLineHeight(Number(e.target.value))} className="w-full accent-blue-600 h-5" />
-                  </div>
+                  {[
+                    { label: "Size", value: fontSize, setter: setFontSize, min: 12, max: 48, step: 1, unit: "px" },
+                    { label: "Letter Spacing", value: letterSpacing, setter: setLetterSpacing, min: -2, max: 10, step: 0.5, unit: "" },
+                    { label: "Word Spacing", value: wordSpacing, setter: setWordSpacing, min: -5, max: 20, step: 1, unit: "" },
+                    { label: "Line Height", value: lineHeight, setter: setLineHeight, min: 1.0, max: 2.5, step: 0.1, unit: "" },
+                  ].map(({ label, value, setter, min, max, step, unit }) => (
+                    <div key={label}>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 flex justify-between">
+                        {label} <span>{value}{unit}</span>
+                      </label>
+                      <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={value}
+                        onChange={(e) => setter(Number(e.target.value))}
+                        className="w-full accent-blue-600 h-5"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </Card>
@@ -702,6 +1110,7 @@ export default function Studio() {
 
         {/* Editor & Preview Area */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-slate-50/50">
+          {/* Mobile header */}
           <div className="lg:hidden bg-white border-b border-slate-200/60 p-4 flex items-center justify-between">
             <button onClick={() => setShowMobilePanel(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold shadow-lg">
               <Settings2 className="w-3.5 h-3.5" /> Settings
@@ -712,6 +1121,7 @@ export default function Studio() {
           </div>
 
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8">
+            {/* Text Editor */}
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-3">
@@ -732,6 +1142,7 @@ export default function Studio() {
               <Card className="flex-none min-h-[300px] overflow-hidden flex flex-col p-0 border-slate-200/60 shadow-xl rounded-3xl">
                 <textarea
                   className="w-full h-full p-6 lg:p-8 text-slate-700 bg-white border-none focus:outline-none focus:ring-0 resize-none font-medium leading-relaxed transition-all"
+                  style={{ minHeight: '300px' }}
                   placeholder="Type or paste your raw notes here..."
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -739,7 +1150,7 @@ export default function Studio() {
               </Card>
             </div>
 
-            {/* Hand-written Preview Area */}
+            {/* Preview Area */}
             <div className="flex-1 pb-10">
               <div className="flex items-center justify-between px-4 py-4 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-2xl mb-8 sticky top-0 z-20 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -748,22 +1159,21 @@ export default function Studio() {
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Live Rendering
                   </div>
                 </div>
-
                 <div className="flex items-center gap-4">
                   <div className="flex bg-slate-100 p-1 rounded-lg">
-                    <button onClick={() => setViewMode("list")} className={cn("p-1.5 rounded-md transition-all cursor-pointer", viewMode === "list" ? "bg-white shadow-sm text-blue-600" : "text-slate-400")}><Layout className="w-4 h-4" /></button>
-                    <button onClick={() => setViewMode("grid")} className={cn("p-1.5 rounded-md transition-all cursor-pointer", viewMode === "grid" ? "bg-white shadow-sm text-blue-600" : "text-slate-400")}><FileStack className="w-4 h-4" /></button>
+                    <button onClick={() => setViewMode("list")} className={cn("p-1.5 rounded-md transition-all cursor-pointer", viewMode === "list" ? "bg-white shadow-sm text-blue-600" : "text-slate-400")}>
+                      <Layout className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setViewMode("grid")} className={cn("p-1.5 rounded-md transition-all cursor-pointer", viewMode === "grid" ? "bg-white shadow-sm text-blue-600" : "text-slate-400")}>
+                      <FileStack className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Responsive Container for scrolling pages */}
               <div className="w-full overflow-x-auto pb-8">
-                <div 
-                  className={cn(
-                    "mx-auto",
-                    viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" : "flex flex-col items-center gap-12"
-                  )}
+                <div
+                  className={cn("mx-auto", viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" : "flex flex-col items-center gap-12")}
                   style={{ minWidth: `${currentConfig.w}px` }}
                 >
                   {engine === "local" ? (
@@ -772,10 +1182,7 @@ export default function Studio() {
                         <PagePreview key={idx} lines={lines} isExport={false} pageIndex={idx} />
                       ))
                     ) : (
-                      <div 
-                        className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200"
-                        style={{ width: `${currentConfig.w}px` }}
-                      >
+                      <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200" style={{ width: `${currentConfig.w}px` }}>
                         <RefreshCw className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-slate-500 font-medium">Type something to generate preview</p>
                       </div>
@@ -783,15 +1190,10 @@ export default function Studio() {
                   ) : (
                     previewPages.length > 0 ? (
                       previewPages.map((page, idx) => (
-                        <div 
-                          key={idx} 
-                          className={cn(
-                            "relative bg-white shadow-2xl transition-all duration-500 overflow-hidden group rounded-sm border border-slate-200 flex-shrink-0"
-                          )}
-                          style={{
-                            width: `${currentConfig.w}px`,
-                            height: `${currentConfig.h}px`,
-                          }}
+                        <div
+                          key={idx}
+                          className="relative bg-white shadow-2xl transition-all duration-500 overflow-hidden group rounded-sm border border-slate-200 flex-shrink-0"
+                          style={{ width: `${currentConfig.w}px`, height: `${currentConfig.h}px` }}
                         >
                           <img src={`data:image/png;base64,${page}`} alt={`Page ${idx + 1}`} className="w-full h-full object-contain" />
                           <div className="absolute top-4 right-4 bg-black/50 text-white text-[10px] px-2 py-1 rounded-md backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-50">
@@ -800,10 +1202,7 @@ export default function Studio() {
                         </div>
                       ))
                     ) : (
-                      <div 
-                        className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200"
-                        style={{ width: `${currentConfig.w}px` }}
-                      >
+                      <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200" style={{ width: `${currentConfig.w}px` }}>
                         <RefreshCw className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-slate-500 font-medium">No preview generated yet</p>
                         <p className="text-xs text-slate-400 mt-1">Click "Generate Preview" to render on AI Cloud</p>
@@ -817,7 +1216,7 @@ export default function Studio() {
         </div>
       </div>
 
-      {/* Hidden Export Container */}
+      {/* Hidden Export Container for html2canvas */}
       <div className="absolute left-[-9999px] top-0 overflow-visible z-[-1]" aria-hidden="true">
         <div id="pdf-export-wrapper" className="flex flex-col gap-4">
           {pages.map((lines, idx) => (
@@ -826,6 +1225,7 @@ export default function Studio() {
         </div>
       </div>
 
+      {/* SVG Filter Defs */}
       <svg className="hidden">
         <defs>
           <filter id="ink-bleed">

@@ -24,8 +24,10 @@ import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
+import { API_BASE } from '../../utils/api';
+import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = 'http://localhost:5000/api';
+const API = API_BASE;
 axios.defaults.withCredentials = true;
 
 export default function ProjectBuilder() {
@@ -324,14 +326,20 @@ export default function ProjectBuilder() {
         addToast('Saved to Cloud Library!', 'success');
         triggerSuccessEffect();
       } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (isNative()) {
+          const url = URL.createObjectURL(blob);
+          await downloadOrShareFile(url, fileName);
+          URL.revokeObjectURL(url);
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
         clearToasts();
         addToast('PDF Downloaded!', 'success');
         triggerSuccessEffect();

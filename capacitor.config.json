@@ -1,0 +1,8 @@
+{
+  "appId": "com.kolomflow.app",
+  "appName": "KolomFlow",
+  "webDir": "client/dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

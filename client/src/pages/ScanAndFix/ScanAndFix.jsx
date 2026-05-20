@@ -1,9 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight, Cloud } from 'lucide-react';
+import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, SlidersHorizontal, Cloud, Camera } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../../utils/api';
+import { isNative, takePhoto, downloadOrShareFile } from '../../utils/capacitorHelper';
 
-const API = 'http://localhost:5000/api/scan-fix';
+const API = `${API_BASE}/scan-fix`;
 axios.defaults.withCredentials = true;
 
 export default function ScanAndFix() {
@@ -29,6 +31,18 @@ export default function ScanAndFix() {
     }
   }, []);
 
+  const handleCameraCapture = async () => {
+    try {
+      const dataUrl = await takePhoto();
+      if (dataUrl) {
+        setOriginalImage(dataUrl);
+        setProcessedUrl(null);
+      }
+    } catch (err) {
+      console.warn('Camera capture cancelled or failed:', err);
+    }
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
@@ -50,14 +64,9 @@ export default function ScanAndFix() {
     }
   };
 
-  const downloadResult = () => {
+  const downloadResult = async () => {
     if (!processedUrl) return;
-    const link = document.createElement('a');
-    link.href = processedUrl;
-    link.download = `Restored_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await downloadOrShareFile(processedUrl, `Restored_${Date.now()}.jpg`);
   };
 
   return (
@@ -80,13 +89,28 @@ export default function ScanAndFix() {
       </div>
 
       {!originalImage ? (
-        <div {...getRootProps()} className={`border-3 border-dashed rounded-[2rem] p-24 text-center transition-all cursor-pointer bg-white ${isDragActive ? 'border-emerald-500 bg-emerald-50 scale-[1.01]' : 'border-gray-200 hover:border-emerald-400 hover:shadow-xl'}`}>
-          <input {...getInputProps()} />
-          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-            <UploadCloud className="w-12 h-12" />
+        <div className={`grid grid-cols-1 ${isNative() ? 'md:grid-cols-2' : ''} gap-6`}>
+          <div {...getRootProps()} className={`border-3 border-dashed rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-white ${isDragActive ? 'border-emerald-500 bg-emerald-50 scale-[1.01]' : 'border-gray-200 hover:border-emerald-400 hover:shadow-xl'} flex flex-col items-center justify-center min-h-[350px]`}>
+            <input {...getInputProps()} />
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-inner">
+              <UploadCloud className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 mb-2 italic">CHOOSE PHOTO</h3>
+            <p className="text-gray-400 font-bold max-w-xs mx-auto text-xs uppercase tracking-wider">Drag & drop or tap to select image from files</p>
           </div>
-          <h3 className="text-3xl font-black text-gray-900 mb-2 italic">DRAG & DROP</h3>
-          <p className="text-gray-400 font-bold max-w-sm mx-auto uppercase tracking-tighter">Blury notes? Dark photos? Old documents? Our AI fixes them all.</p>
+          
+          {isNative() && (
+            <div 
+              onClick={handleCameraCapture}
+              className="border-3 border-emerald-500 border-dashed rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-white hover:bg-emerald-50/20 hover:shadow-xl flex flex-col items-center justify-center min-h-[350px]"
+            >
+              <div className="w-20 h-20 bg-emerald-600 text-white rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
+                <Camera className="w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-black text-emerald-600 mb-2 italic">TAKE PHOTO</h3>
+              <p className="text-emerald-500/80 font-bold max-w-xs mx-auto text-xs uppercase tracking-wider">Use device camera to snap document</p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

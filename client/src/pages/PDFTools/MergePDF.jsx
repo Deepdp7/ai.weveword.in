@@ -3,6 +3,8 @@ import { useDropzone } from 'react-dropzone';
 import { ArrowLeft, UploadCloud, FileText, ArrowUp, ArrowDown, X, Layers, Loader2, Download, Cloud } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE } from '../../utils/api';
+import { isNative, downloadOrShareFile } from '../../utils/capacitorHelper';
 
 export default function MergePDF() {
   const [files, setFiles] = useState([]);
@@ -54,7 +56,7 @@ export default function MergePDF() {
     });
 
     try {
-      const response = await axios.post('http://localhost:5000/api/pdf/merge', formData, {
+      const response = await axios.post(`${API_BASE}/pdf/merge`, formData, {
         responseType: 'blob' // important for file download
       });
       
@@ -120,14 +122,10 @@ export default function MergePDF() {
             ) : (
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const url = window.URL.createObjectURL(new Blob([resultBlob]));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', 'Merged_KolomFlow.pdf');
-                    document.body.appendChild(link);
-                    link.click();
-                    link.parentNode.removeChild(link);
+                    await downloadOrShareFile(url, 'Merged_KolomFlow.pdf');
+                    window.URL.revokeObjectURL(url);
                   }}
                   className="px-4 py-2 bg-white border border-brand-600 text-brand-600 font-medium rounded-xl hover:bg-brand-50 transition-colors flex items-center gap-2 shadow-sm text-sm"
                 >
@@ -140,7 +138,7 @@ export default function MergePDF() {
                       const uploadData = new FormData();
                       uploadData.append('file', new File([resultBlob], 'Merged_KolomFlow.pdf', { type: 'application/pdf' }));
                       uploadData.append('toolSource', 'pdf');
-                      await axios.post('http://localhost:5000/api/files/upload', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      await axios.post(`${API_BASE}/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       alert('Saved to Cloud Library!');
                     } catch (e) { alert('Failed to save to cloud.'); }
                     setIsSavingCloud(false);

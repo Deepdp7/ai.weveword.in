@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Lock, Shield, CreditCard, HardDrive, FileSignature, Upload, LogOut, CheckCircle2, Trash2, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { API_BASE } from '../../utils/api';
 
-const API = 'http://localhost:5000/api';
+const API = API_BASE;
 axios.defaults.withCredentials = true;
 
 export default function Profile() {
