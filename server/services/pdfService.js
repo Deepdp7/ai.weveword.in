@@ -58,14 +58,19 @@ export const extractPdfPages = async (pdfBuffer, ranges) => {
 };
 
 /**
- * Converts Word (.docx) to PDF.
+ * Helper to convert Office documents to PDF using Local LibreOffice, Gotenberg API, or Offline Fallback.
  */
-export const wordToPdf = async (inputPath) => {
-  // Try LibreOffice
+const convertOfficeToPdf = async (inputPath, ext) => {
+  const outDir = path.dirname(inputPath);
+  const baseName = path.basename(inputPath, ext);
+
+  // 1. Try LibreOffice Local
   try {
-    const outDir = path.dirname(inputPath);
-    execSync(`libreoffice --headless --convert-to pdf --outdir "${outDir}" "${inputPath}"`, { stdio: 'ignore' });
-    const baseName = path.basename(inputPath, path.extname(inputPath));
+    let cmd = 'libreoffice';
+    if (process.platform === 'win32') {
+      cmd = '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"';
+    }
+    execSync(`${cmd} --headless --convert-to pdf --outdir "${outDir}" "${inputPath}"`, { stdio: 'ignore' });
     const outputPath = path.join(outDir, `${baseName}.pdf`);
     if (fs.existsSync(outputPath)) {
       const buffer = fs.readFileSync(outputPath);
@@ -73,40 +78,73 @@ export const wordToPdf = async (inputPath) => {
       return buffer;
     }
   } catch (err) {
-    console.log('LibreOffice fallback to Mammoth...');
+    console.log(`Local LibreOffice failed or missing. Trying Gotenberg fallback for ${ext}...`);
   }
 
-  // Pure JS Fallback
-  const result = await mammoth.extractRawText({ path: inputPath });
-  return await textToPdfContent(result.value);
+  // 2. Try Gotenberg cloud API (keyless) fallback
+  try {
+    const fileBuffer = fs.readFileSync(inputPath);
+    const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
+    const header = Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="files"; filename="${path.basename(inputPath)}"\r\n` +
+      `Content-Type: application/octet-stream\r\n\r\n`
+    );
+    const footer = Buffer.from(`\r\n--${boundary}--\r\n`);
+    const body = Buffer.concat([header, fileBuffer, footer]);
+
+    const response = await fetch('https://demo.gotenberg.dev/forms/libreoffice/convert', {
+      method: 'POST',
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body: body,
+    });
+
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
+    console.log('Gotenberg cloud API returned status:', response.status);
+  } catch (apiErr) {
+    console.log('Gotenberg cloud API conversion failed. Trying pure JS fallback...');
+  }
+
+  // 3. Fallbacks
+  if (ext === '.docx') {
+    const result = await mammoth.extractRawText({ path: inputPath });
+    return await txtToPdfContent(result.value);
+  }
+  if (ext === '.xlsx') {
+    const workbook = xlsx.readFile(inputPath);
+    let content = '';
+    workbook.SheetNames.forEach(sheetName => {
+      content += `\n--- SHEET: ${sheetName} ---\n`;
+      const worksheet = workbook.Sheets[sheetName];
+      content += xlsx.utils.sheet_to_txt(worksheet);
+    });
+    return await txtToPdfContent(content);
+  }
+  if (ext === '.txt') {
+    const text = fs.readFileSync(inputPath, 'utf-8');
+    return await txtToPdfContent(text);
+  }
+
+  throw new Error(`Failed to convert ${ext} file. Please ensure LibreOffice is installed or you are online.`);
+};
+
+/**
+ * Converts Word (.docx) to PDF.
+ */
+export const wordToPdf = async (inputPath) => {
+  return convertOfficeToPdf(inputPath, '.docx');
 };
 
 /**
  * Converts Excel (.xlsx) to PDF.
  */
 export const excelToPdf = async (inputPath) => {
-  try {
-    const outDir = path.dirname(inputPath);
-    execSync(`libreoffice --headless --convert-to pdf --outdir "${outDir}" "${inputPath}"`, { stdio: 'ignore' });
-    const baseName = path.basename(inputPath, path.extname(inputPath));
-    const outputPath = path.join(outDir, `${baseName}.pdf`);
-    if (fs.existsSync(outputPath)) {
-      const buffer = fs.readFileSync(outputPath);
-      fs.unlinkSync(outputPath);
-      return buffer;
-    }
-  } catch (err) {
-    console.log('LibreOffice fallback to XLSX...');
-  }
-
-  const workbook = xlsx.readFile(inputPath);
-  let content = '';
-  workbook.SheetNames.forEach(sheetName => {
-    content += `\n--- SHEET: ${sheetName} ---\n`;
-    const worksheet = workbook.Sheets[sheetName];
-    content += xlsx.utils.sheet_to_txt(worksheet);
-  });
-  return await textToPdfContent(content);
+  return convertOfficeToPdf(inputPath, '.xlsx');
 };
 
 /**
@@ -175,21 +213,5 @@ export const imagesToPdf = async (images, isBuffer = false) => {
  */
 export const officeToPdf = async (inputPath) => {
   const ext = path.extname(inputPath).toLowerCase();
-  if (ext === '.docx') return await wordToPdf(inputPath);
-  if (ext === '.xlsx') return await excelToPdf(inputPath);
-  
-  // Try LibreOffice for others
-  try {
-    const outDir = path.dirname(inputPath);
-    execSync(`libreoffice --headless --convert-to pdf --outdir "${outDir}" "${inputPath}"`, { stdio: 'ignore' });
-    const baseName = path.basename(inputPath, path.extname(inputPath));
-    const outputPath = path.join(outDir, `${baseName}.pdf`);
-    if (fs.existsSync(outputPath)) {
-      const buffer = fs.readFileSync(outputPath);
-      fs.unlinkSync(outputPath);
-      return buffer;
-    }
-  } catch (e) {}
-
-  throw new Error('Format conversion failed. Please ensure LibreOffice is installed for this file type.');
+  return convertOfficeToPdf(inputPath, ext);
 };

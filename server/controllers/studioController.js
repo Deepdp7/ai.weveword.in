@@ -7,18 +7,81 @@ import fs from 'fs';
 import { createCanvas, registerFont } from 'canvas';
 import path from 'path';
 
+// Server Page Dimensions at 150 DPI
+const SERVER_PAGE_DIMENSIONS = {
+  a4: { width: 1240, height: 1754, marginX: 180, marginY: 140 },
+  letter: { width: 1275, height: 1650, marginX: 180, marginY: 140 },
+  a3: { width: 1754, height: 2480, marginX: 240, marginY: 200 },
+  legal: { width: 1275, height: 2100, marginX: 180, marginY: 140 },
+};
+
+const fontCache = new Map();
+
+const getOrDownloadFont = async (fontFamily) => {
+  const cleanName = fontFamily.replace(/['"\s]/g, '');
+  if (fontCache.has(cleanName)) {
+    return cleanName;
+  }
+
+  const fontsDir = path.join(process.cwd(), 'temp', 'fonts');
+  if (!fs.existsSync(fontsDir)) {
+    fs.mkdirSync(fontsDir, { recursive: true });
+  }
+
+  const fontPath = path.join(fontsDir, `${cleanName}.ttf`);
+  
+  if (fs.existsSync(fontPath)) {
+    try {
+      registerFont(fontPath, { family: fontFamily });
+      fontCache.set(cleanName, fontFamily);
+      return fontFamily;
+    } catch (err) {
+      console.error('Failed to register cached font:', err);
+    }
+  }
+
+  // Fetch CSS from Google Fonts to find TTF link
+  try {
+    const cssUrl = `https://fonts.googleapis.com/css2?family=${cleanName.replace(/\s+/g, '+')}`;
+    const res = await fetch(cssUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+      }
+    });
+    if (res.ok) {
+      const cssContent = await res.text();
+      const ttfMatch = cssContent.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.ttf)\)/);
+      if (ttfMatch && ttfMatch[1]) {
+        const ttfUrl = ttfMatch[1];
+        const ttfRes = await fetch(ttfUrl);
+        if (ttfRes.ok) {
+          const arrayBuffer = await ttfRes.arrayBuffer();
+          fs.writeFileSync(fontPath, Buffer.from(arrayBuffer));
+          
+          registerFont(fontPath, { family: fontFamily });
+          fontCache.set(cleanName, fontFamily);
+          return fontFamily;
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to download and register font ${fontFamily}:`, error);
+  }
+
+  return 'Comic Sans MS'; // Fallback
+};
+
 // Handwriting Engine
 export const renderHandwriting = async (req, res) => {
   try {
-    const { text, color, paperStyle, fontSize, letterSpacing, wordSpacing } = req.body;
+    const { text, color, paperStyle, fontSize, letterSpacing, wordSpacing, fontFamily, showMargin, isHumanized, pageSize } = req.body;
     const pages = [];
     
-    // A4 Dimensions at 150 DPI
-    const width = 1240;
-    const height = 1754;
+    const resolvedFont = await getOrDownloadFont(fontFamily || 'Dancing Script');
+    const pSize = pageSize || 'a4';
+    const dimensions = SERVER_PAGE_DIMENSIONS[pSize] || SERVER_PAGE_DIMENSIONS.a4;
+    const { width, height, marginX, marginY } = dimensions;
     
-    const marginX = 180;
-    const marginY = 140;
     const maxWidth = width - marginX - 100;
     const lSpacing = letterSpacing || 0;
     const wSpacing = wordSpacing || 0;
@@ -49,8 +112,10 @@ export const renderHandwriting = async (req, res) => {
         for (let y = lineHeight + 100; y < height; y += lineHeight) {
           ctx.beginPath(); ctx.moveTo(100, y); ctx.lineTo(width - 100, y); ctx.stroke();
         }
-        ctx.strokeStyle = '#fca5a5';
-        ctx.beginPath(); ctx.moveTo(150, 0); ctx.lineTo(150, height); ctx.stroke();
+        if (showMargin !== false) {
+          ctx.strokeStyle = '#fca5a5';
+          ctx.beginPath(); ctx.moveTo(150, 0); ctx.lineTo(150, height); ctx.stroke();
+        }
       } else if (paperStyle === 'engineering') {
         ctx.strokeStyle = '#10b98122'; ctx.lineWidth = 1;
         for (let x = 0; x < width; x += 40) {
@@ -63,7 +128,7 @@ export const renderHandwriting = async (req, res) => {
 
       // Draw Text
       ctx.fillStyle = color || '#000000';
-      ctx.font = `${fontSize || 24}px "Comic Sans MS", cursive`; 
+      ctx.font = `${fontSize || 24}px "${resolvedFont}"`; 
       
       let y = marginY;
 
@@ -84,8 +149,8 @@ export const renderHandwriting = async (req, res) => {
         for (let i = 0; i < segments.length; i++) {
           const segment = segments[i].trim();
           if (segment) {
-            const jitterX = (Math.random() - 0.5) * 5;
-            const jitterY = (Math.random() - 0.5) * 3;
+            const jitterX = showMargin !== false && isHumanized !== false ? (Math.random() - 0.5) * 5 : 0;
+            const jitterY = showMargin !== false && isHumanized !== false ? (Math.random() - 0.5) * 3 : 0;
             
             // Render with letter spacing
             let charX = x + jitterX;
@@ -108,7 +173,7 @@ export const renderHandwriting = async (req, res) => {
       for (let word of words) {
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
-        ctx.font = `${fontSize || 24}px "Comic Sans MS", cursive`;
+        ctx.font = `${fontSize || 24}px "${resolvedFont}"`;
         const metrics = ctx.measureText(currentLine + word + " ");
         if (metrics.width > maxWidth && currentLine.length > 0) {
           currentPageLines.push(currentLine);
@@ -139,13 +204,14 @@ export const renderHandwriting = async (req, res) => {
 // Export to PDF
 export const exportPdf = async (req, res) => {
   try {
-    const { text, color, paperStyle, fontSize, letterSpacing, wordSpacing } = req.body;
+    const { text, color, paperStyle, fontSize, letterSpacing, wordSpacing, fontFamily, showMargin, isHumanized, pageSize } = req.body;
     const pageBuffers = [];
     
-    const width = 1240;
-    const height = 1754;
-    const marginX = 180;
-    const marginY = 140;
+    const resolvedFont = await getOrDownloadFont(fontFamily || 'Dancing Script');
+    const pSize = pageSize || 'a4';
+    const dimensions = SERVER_PAGE_DIMENSIONS[pSize] || SERVER_PAGE_DIMENSIONS.a4;
+    const { width, height, marginX, marginY } = dimensions;
+
     const maxWidth = width - marginX - 100;
     const lSpacing = letterSpacing || 0;
     const wSpacing = wordSpacing || 0;
@@ -174,8 +240,10 @@ export const exportPdf = async (req, res) => {
         for (let y = lineHeight + 100; y < height; y += lineHeight) {
           ctx.beginPath(); ctx.moveTo(100, y); ctx.lineTo(width - 100, y); ctx.stroke();
         }
-        ctx.strokeStyle = '#fca5a5';
-        ctx.beginPath(); ctx.moveTo(150, 0); ctx.lineTo(150, height); ctx.stroke();
+        if (showMargin !== false) {
+          ctx.strokeStyle = '#fca5a5';
+          ctx.beginPath(); ctx.moveTo(150, 0); ctx.lineTo(150, height); ctx.stroke();
+        }
       } else if (paperStyle === 'engineering') {
         ctx.strokeStyle = '#10b98122'; ctx.lineWidth = 1;
         for (let x = 0; x < width; x += 40) {
@@ -187,11 +255,11 @@ export const exportPdf = async (req, res) => {
       }
 
       ctx.fillStyle = color || '#000000';
-      ctx.font = `${fontSize || 24}px "Comic Sans MS", cursive`; 
+      ctx.font = `${fontSize || 24}px "${resolvedFont}"`; 
       let y = marginY;
       for (let line of textContent) {
-        const jitterX = (Math.random() - 0.5) * 5;
-        const jitterY = (Math.random() - 0.5) * 3;
+        const jitterX = showMargin !== false && isHumanized !== false ? (Math.random() - 0.5) * 5 : 0;
+        const jitterY = showMargin !== false && isHumanized !== false ? (Math.random() - 0.5) * 3 : 0;
         
         let x = marginX;
         const segments = line.split(/\t| {3,}|\|/);
@@ -219,7 +287,7 @@ export const exportPdf = async (req, res) => {
       for (let word of words) {
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
-        ctx.font = `${fontSize || 24}px "Comic Sans MS", cursive`;
+        ctx.font = `${fontSize || 24}px "${resolvedFont}"`;
         const metrics = ctx.measureText(currentLine + word + " ");
         if (metrics.width > maxWidth && currentLine.length > 0) {
           currentPageLines.push(currentLine);
@@ -303,7 +371,7 @@ export const exportProject = async (req, res) => {
 
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: `kolomflow/users/${req.user._id}/projects`,
-      resource_type: 'auto',
+      resource_type: 'image',
       type: 'upload',
       access_mode: 'public'
     });

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { ArrowLeft, UploadCloud, FileText, Scissors, Loader2, X } from 'lucide-react';
+import { ArrowLeft, UploadCloud, FileText, Scissors, Loader2, X, Download, Cloud } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -9,6 +9,8 @@ export default function SplitPDF() {
   const [ranges, setRanges] = useState('');
   const [isSplitting, setIsSplitting] = useState(false);
   const [error, setError] = useState(null);
+  const [resultBlob, setResultBlob] = useState(null);
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
 
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
@@ -44,13 +46,7 @@ export default function SplitPDF() {
         responseType: 'blob'
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'Extracted_KolomFlow.pdf');
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      setResultBlob(response.data);
       
     } catch (err) {
       setError('Failed to split PDF. Please check your ranges and try again.');
@@ -125,14 +121,50 @@ export default function SplitPDF() {
                 </div>
               )}
 
-              <button 
-                onClick={handleSplit}
-                disabled={isSplitting || !ranges.trim()}
-                className="w-full py-4 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 text-lg"
-              >
-                {isSplitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Scissors className="w-6 h-6" />}
-                {isSplitting ? 'Splitting PDF...' : 'Extract Pages'}
-              </button>
+              {!resultBlob ? (
+                <button 
+                  onClick={handleSplit}
+                  disabled={isSplitting || !ranges.trim()}
+                  className="w-full py-4 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 text-lg"
+                >
+                  {isSplitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Scissors className="w-6 h-6" />}
+                  {isSplitting ? 'Splitting PDF...' : 'Extract Pages'}
+                </button>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => {
+                      const url = window.URL.createObjectURL(new Blob([resultBlob]));
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', 'Extracted_KolomFlow.pdf');
+                      document.body.appendChild(link);
+                      link.click();
+                      link.parentNode.removeChild(link);
+                    }}
+                    className="flex-1 py-4 bg-white border border-brand-600 text-brand-600 font-bold rounded-xl hover:bg-brand-50 transition-colors flex items-center justify-center gap-2 shadow-sm text-lg"
+                  >
+                    <Download className="w-5 h-5" /> Download
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsSavingCloud(true);
+                      try {
+                        const uploadData = new FormData();
+                        uploadData.append('file', new File([resultBlob], 'Extracted_KolomFlow.pdf', { type: 'application/pdf' }));
+                        uploadData.append('toolSource', 'pdf');
+                        await axios.post('http://localhost:5000/api/files/upload', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        alert('Saved to Cloud Library!');
+                      } catch (e) { alert('Failed to save to cloud.'); }
+                      setIsSavingCloud(false);
+                    }}
+                    disabled={isSavingCloud}
+                    className="flex-1 py-4 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shadow-brand-500/20 text-lg"
+                  >
+                    {isSavingCloud ? <Loader2 className="w-5 h-5 animate-spin" /> : <Cloud className="w-5 h-5" />} Save to Cloud
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

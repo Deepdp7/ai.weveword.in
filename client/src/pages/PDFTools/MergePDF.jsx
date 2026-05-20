@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { ArrowLeft, UploadCloud, FileText, ArrowUp, ArrowDown, X, Layers, Loader2 } from 'lucide-react';
+import { ArrowLeft, UploadCloud, FileText, ArrowUp, ArrowDown, X, Layers, Loader2, Download, Cloud } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -8,6 +8,8 @@ export default function MergePDF() {
   const [files, setFiles] = useState([]);
   const [isMerging, setIsMerging] = useState(false);
   const [error, setError] = useState(null);
+  const [resultBlob, setResultBlob] = useState(null);
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
 
   const onDrop = useCallback((acceptedFiles) => {
     // Append new files, avoiding duplicates by name for simplicity
@@ -56,14 +58,7 @@ export default function MergePDF() {
         responseType: 'blob' // important for file download
       });
       
-      // Create a URL for the blob and trigger download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'Merged_KolomFlow.pdf');
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      setResultBlob(response.data);
       
     } catch (err) {
       setError('Failed to merge PDFs. Please try again.');
@@ -113,14 +108,51 @@ export default function MergePDF() {
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <h3 className="font-semibold text-gray-900">Files to merge ({files.length})</h3>
-            <button 
-              onClick={handleMerge}
-              disabled={isMerging || files.length < 2}
-              className="px-6 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md shadow-brand-500/20"
-            >
-              {isMerging ? <Loader2 className="w-5 h-5 animate-spin" /> : <Layers className="w-5 h-5" />}
-              {isMerging ? 'Merging...' : 'Merge PDFs'}
-            </button>
+            {!resultBlob ? (
+              <button 
+                onClick={handleMerge}
+                disabled={isMerging || files.length < 2}
+                className="px-6 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md shadow-brand-500/20"
+              >
+                {isMerging ? <Loader2 className="w-5 h-5 animate-spin" /> : <Layers className="w-5 h-5" />}
+                {isMerging ? 'Merging...' : 'Merge PDFs'}
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const url = window.URL.createObjectURL(new Blob([resultBlob]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'Merged_KolomFlow.pdf');
+                    document.body.appendChild(link);
+                    link.click();
+                    link.parentNode.removeChild(link);
+                  }}
+                  className="px-4 py-2 bg-white border border-brand-600 text-brand-600 font-medium rounded-xl hover:bg-brand-50 transition-colors flex items-center gap-2 shadow-sm text-sm"
+                >
+                  <Download className="w-4 h-4" /> Download
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsSavingCloud(true);
+                    try {
+                      const uploadData = new FormData();
+                      uploadData.append('file', new File([resultBlob], 'Merged_KolomFlow.pdf', { type: 'application/pdf' }));
+                      uploadData.append('toolSource', 'pdf');
+                      await axios.post('http://localhost:5000/api/files/upload', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      alert('Saved to Cloud Library!');
+                    } catch (e) { alert('Failed to save to cloud.'); }
+                    setIsSavingCloud(false);
+                  }}
+                  disabled={isSavingCloud}
+                  className="px-4 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-md shadow-brand-500/20 text-sm"
+                >
+                  {isSavingCloud ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />} Save to Cloud
+                </button>
+                <button onClick={() => {setResultBlob(null); setFiles([]);}} className="px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors font-medium text-sm">Clear</button>
+              </div>
+            )}
           </div>
           <ul className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
             {files.map((file, index) => (

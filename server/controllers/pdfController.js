@@ -12,7 +12,7 @@ const uploadAndSave = async ({ userId, buffer, fileName, toolSource }) => {
 
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: `kolomflow/users/${userId}/pdf`,
-      resource_type: 'auto',
+      resource_type: 'image',
       type: 'upload',
       access_mode: 'public'
     });
@@ -41,17 +41,6 @@ export const merge = async (req, res) => {
     const pdfBuffers = req.files.map(file => file.buffer);
     const mergedBuffer = await pdfService.mergePdfs(pdfBuffers);
     
-    // Auto-save to library if user is logged in
-    if (req.user) {
-      const file = await uploadAndSave({
-        userId: req.user._id,
-        buffer: mergedBuffer,
-        fileName: 'merged.pdf',
-        toolSource: 'pdf'
-      });
-      return res.status(200).json({ status: 'success', url: file.fileUrl, fileName: file.fileName });
-    }
-
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="merged.pdf"');
     res.send(mergedBuffer);
@@ -88,7 +77,6 @@ export const split = async (req, res) => {
   }
 };
 
-// New Conversion Tools
 export const wordToPdf = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
@@ -101,14 +89,9 @@ export const wordToPdf = async (req, res) => {
     const pdfBuffer = await pdfService.officeToPdf(tempInput);
     fs.unlinkSync(tempInput); // Clean up original
 
-    const file = await uploadAndSave({
-      userId: req.user._id,
-      buffer: pdfBuffer,
-      fileName: req.file.originalname.replace(/\.[^/.]+$/, "") + '.pdf',
-      toolSource: 'pdf'
-    });
-
-    res.status(200).json({ status: 'success', url: file.fileUrl });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${req.file.originalname.replace(/\.[^/.]+$/, "")}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -132,14 +115,9 @@ export const txtToPdf = async (req, res) => {
     const pdfBuffer = await pdfService.txtToPdf(tempInput);
     fs.unlinkSync(tempInput);
 
-    const file = await uploadAndSave({
-      userId: req.user._id,
-      buffer: pdfBuffer,
-      fileName: req.file.originalname.replace(/\.[^/.]+$/, "") + '.pdf',
-      toolSource: 'pdf'
-    });
-
-    res.status(200).json({ status: 'success', url: file.fileUrl });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${req.file.originalname.replace(/\.[^/.]+$/, "")}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -159,14 +137,9 @@ export const jpgToPdf = async (req, res) => {
     const pdfBuffer = await pdfService.imagesToPdf(tempPaths);
     tempPaths.forEach(p => fs.unlinkSync(p));
 
-    const file = await uploadAndSave({
-      userId: req.user._id,
-      buffer: pdfBuffer,
-      fileName: `Images_to_PDF_${Date.now()}.pdf`,
-      toolSource: 'pdf'
-    });
-
-    res.status(200).json({ status: 'success', url: file.fileUrl });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Images_to_PDF_${Date.now()}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

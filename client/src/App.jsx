@@ -7,7 +7,6 @@ import ForgotPassword from './pages/Auth/ForgotPassword';
 
 import PDFHub from './pages/PDFTools/PDFHub';
 import MergePDF from './pages/PDFTools/MergePDF';
-import SplitPDF from './pages/PDFTools/SplitPDF';
 import GenericConverter from './pages/PDFTools/GenericConverter';
 import ImagesToPDF from './pages/PDFTools/ImagesToPDF';
 import Studio from './pages/Studio/Studio';
@@ -43,6 +42,7 @@ function App() {
           <Route index element={<Home />} />
           
           {/* Scan & Fix */}
+          <Route path="scan" element={<ScanAndFix />} />
           <Route path="scan-fix" element={<ScanAndFix />} />
 
           {/* Signature Generator */}
@@ -58,6 +58,7 @@ function App() {
           <Route path="studio" element={<Studio />} />
 
           {/* Project Builder */}
+          <Route path="project" element={<ProjectBuilder />} />
           <Route path="project-builder" element={<ProjectBuilder />} />
 
           {/* Cloud Library */}
@@ -79,7 +80,6 @@ function App() {
           {/* PDF Tools */}
           <Route path="pdf-tools" element={<PDFHub />} />
           <Route path="pdf-tools/merge" element={<MergePDF />} />
-          <Route path="pdf-tools/split" element={<SplitPDF />} />
           <Route path="pdf-tools/images-to-pdf" element={<ImagesToPDF />} />
           <Route path="pdf-tools/:toolKey" element={<GenericConverter />} />
           

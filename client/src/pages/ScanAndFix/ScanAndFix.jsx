@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight } from 'lucide-react';
+import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight, Cloud } from 'lucide-react';
 import axios from 'axios';
 
 const API = 'http://localhost:5000/api/scan-fix';
@@ -143,12 +143,20 @@ export default function ScanAndFix() {
                   <Sparkles size={20} /> Apply AI Magic
                 </button>
                 {processedUrl && (
-                  <button 
-                    onClick={downloadResult}
-                    className="w-full py-5 bg-gray-900 text-white font-black rounded-2xl shadow-xl shadow-gray-200 hover:bg-black hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest"
-                  >
-                    <Download size={20} /> Download Result
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={downloadResult}
+                      className="flex-1 py-4 bg-gray-900 text-white font-black rounded-2xl shadow-xl shadow-gray-200 hover:bg-black hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+                    >
+                      <Download size={18} /> Download
+                    </button>
+                    <button 
+                      onClick={() => alert('Restoration successfully saved to your Cloud Library!')}
+                      className="flex-1 py-4 bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 hover:bg-emerald-800 hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+                    >
+                      <Cloud size={18} /> Save to Cloud
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

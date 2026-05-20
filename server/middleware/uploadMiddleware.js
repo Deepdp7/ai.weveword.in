@@ -6,7 +6,8 @@ import cloudinary from '../config/cloudinary.js';
 const getResourceType = (mimetype) => {
   if (mimetype.startsWith('image/')) return 'image';
   if (mimetype.startsWith('video/')) return 'video';
-  return 'raw'; // PDFs, DOCX, PPTX, etc.
+  if (mimetype === 'application/pdf') return 'image';
+  return 'raw'; // DOCX, PPTX, etc.
 };
 
 // Map MIME types to our file type enum

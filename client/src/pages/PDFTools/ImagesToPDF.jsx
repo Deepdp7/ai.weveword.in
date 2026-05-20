@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Image as ImageIcon, Loader2, Download, CheckCircle2, ArrowLeft, AlertCircle, Trash2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Download, CheckCircle2, ArrowLeft, AlertCircle, Trash2, Cloud } from 'lucide-react';
 import axios from 'axios';
 
 const API = 'http://localhost:5000/api';
@@ -12,6 +12,7 @@ export default function ImagesToPDF() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
 
   const handleFileChange = (e) => {
     const selected = Array.from(e.target.files);
@@ -32,12 +33,16 @@ export default function ImagesToPDF() {
     files.forEach(file => formData.append('files', file));
 
     try {
-      const { data } = await axios.post(`${API}/pdf/images-to-pdf`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await axios.post(`${API}/pdf/images-to-pdf`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'blob'
       });
-      setResult(data);
+      setResult({
+        blob: response.data,
+        fileName: `Images_to_PDF_${Date.now()}.pdf`
+      });
     } catch (err) {
-      setError(err.response?.data?.error || 'Conversion failed. Please try again.');
+      setError('Conversion failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -113,18 +118,40 @@ export default function ImagesToPDF() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Success!</h2>
-                <p className="text-gray-500">Your PDF has been generated and saved to your library.</p>
+                <p className="text-gray-500">Your PDF has been generated successfully.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                <a
-                  href={result.url}
-                  download={result.fileName || 'images.pdf'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-8 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-brand-100"
+                <button
+                  onClick={() => {
+                    const url = window.URL.createObjectURL(result.blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', result.fileName);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.parentNode.removeChild(link);
+                  }}
+                  className="px-8 py-3 bg-white border-2 border-brand-600 text-brand-600 hover:bg-brand-50 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
                 >
-                  <Download size={18} /> Download PDF
-                </a>
+                  <Download size={18} /> Download
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsSavingCloud(true);
+                    try {
+                      const uploadData = new FormData();
+                      uploadData.append('file', new File([result.blob], result.fileName, { type: 'application/pdf' }));
+                      uploadData.append('toolSource', 'pdf');
+                      await axios.post(`${API}/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      alert('Saved to Cloud Library!');
+                    } catch (e) { alert('Failed to save to cloud.'); }
+                    setIsSavingCloud(false);
+                  }}
+                  disabled={isSavingCloud}
+                  className="px-8 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-brand-100 transition-colors"
+                >
+                  {isSavingCloud ? <Loader2 className="animate-spin" size={18} /> : <Cloud size={18} />} Save to Cloud
+                </button>
                 <button
                   onClick={() => { setFiles([]); setResult(null); }}
                   className="px-8 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors"

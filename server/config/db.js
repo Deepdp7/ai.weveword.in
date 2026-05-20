@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+// Fix for Windows DNS SRV lookup issues with MongoDB Atlas
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
 

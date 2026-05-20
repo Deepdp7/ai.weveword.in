@@ -182,12 +182,28 @@ export default function Signature() {
                   />
                 ))}
               </div>
+              <button
+                onClick={async () => {
+                  let dataUrl = '';
+                  if (activeTab === 'type') {
+                    const canvas = await html2canvas(typedPreviewRef.current, { backgroundColor: null, scale: 3 });
+                    dataUrl = canvas.toDataURL('image/png');
+                  } else {
+                    if (!sigPadRef.current || sigPadRef.current.isEmpty()) return;
+                    dataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
+                  }
+                  downloadSignature(dataUrl);
+                }}
+                className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 font-bold py-4 rounded-2xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Download size={20} /> Download
+              </button>
               <button 
                 onClick={handleSave}
                 disabled={saving}
                 className="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
               >
-                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />} Save to My Signatures
+                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />} Save to Cloud
               </button>
             </div>
           </div>

@@ -4,16 +4,11 @@ import { FileText, Layers, Scissors, Minimize2, Image, Key, RotateCw, CheckSquar
 export default function PDFHub() {
   const freeTools = [
     { name: 'Merge PDF', desc: 'Combine multiple PDFs into one file', icon: Layers, path: '/pdf-tools/merge', color: 'text-blue-500', bg: 'bg-blue-50' },
-    { name: 'Split PDF', desc: 'Split by page range or N pages', icon: Scissors, path: '/pdf-tools/split', color: 'text-purple-500', bg: 'bg-purple-50' },
-    { name: 'Compress PDF', desc: 'Reduce file size', icon: Minimize2, path: '/pdf-tools/compress', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { name: 'PDF to Images', desc: 'Export each page as PNG/JPG', icon: Image, path: '/pdf-tools/pdf-to-image', color: 'text-amber-500', bg: 'bg-amber-50' },
     { name: 'Images to PDF', desc: 'Convert JPG/PNG images to PDF', icon: FilePlus, path: '/pdf-tools/images-to-pdf', color: 'text-orange-500', bg: 'bg-orange-50' },
     { name: 'Word to PDF', desc: 'Convert .docx to PDF', icon: FileText, path: '/pdf-tools/word-to-pdf', color: 'text-blue-600', bg: 'bg-blue-100', isNew: true },
     { name: 'TXT to PDF', desc: 'Convert plain text to PDF', icon: Type, path: '/pdf-tools/txt-to-pdf', color: 'text-gray-600', bg: 'bg-gray-100', isNew: true },
     { name: 'PPT to PDF', desc: 'Convert .pptx to PDF', icon: Presentation, path: '/pdf-tools/ppt-to-pdf', color: 'text-red-500', bg: 'bg-red-50', isNew: true },
     { name: 'Excel to PDF', desc: 'Convert .xlsx to PDF', icon: FileSpreadsheet, path: '/pdf-tools/excel-to-pdf', color: 'text-green-600', bg: 'bg-green-50', isNew: true },
-    { name: 'Rotate PDF', desc: 'Rotate pages 90°, 180°, 270°', icon: RotateCw, path: '/pdf-tools/rotate', color: 'text-rose-500', bg: 'bg-rose-50' },
-    { name: 'Unlock PDF', desc: 'Remove password protection', icon: Key, path: '/pdf-tools/unlock', color: 'text-indigo-500', bg: 'bg-indigo-50' },
   ];
 
   const premiumTools = [
