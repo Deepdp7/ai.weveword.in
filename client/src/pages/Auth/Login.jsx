@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PenTool, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import logoUrl from '../../assets/logo2.png';
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,64 +30,117 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full bg-brand-200/30 blur-3xl mix-blend-multiply"></div>
-        <div className="absolute top-[40%] -left-[10%] w-[50%] h-[50%] rounded-full bg-purple-200/30 blur-3xl mix-blend-multiply"></div>
-      </div>
+    <div className="min-h-screen flex bg-white font-sans">
+      {/* Left Side - Form */}
+      <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:w-1/2 xl:w-[45%]">
+        <div className="mx-auto w-full max-w-sm lg:max-w-md">
+          
+          <div className="text-center lg:text-left mb-10">
+            <div className="mb-6 lg:mb-8">
+              <img src={logoUrl} alt="Waveword AI" className="h-14 w-auto object-contain mx-auto lg:mx-0 drop-shadow-xl" />
+            </div>
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome back</h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Don't have an account?{' '}
+              <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
+                Create one now
+              </Link>
+            </p>
+          </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30">
-            <PenTool className="text-white w-7 h-7" />
+          <div className="bg-white">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-xl text-sm font-medium flex items-center">
+                <span className="mr-2">⚠️</span> {error}
+              </div>
+            )}
+
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
+                <div className="relative">
+                  <input
+                    name="email" type="email" required
+                    value={formData.email} onChange={handleChange}
+                    className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm bg-gray-50 focus:bg-white text-gray-900 font-medium"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700">Password</label>
+                  <Link to="/forgot-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <input
+                    name="password" type="password" required
+                    value={formData.password} onChange={handleChange}
+                    className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm bg-gray-50 focus:bg-white text-gray-900 font-medium"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit" disabled={isLoading}
+                  className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-600/20 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign in to dashboard'}
+                  {!isLoading && <ArrowRight className="w-4 h-4" />}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 tracking-tight">Welcome back</h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or <Link to="/signup" className="font-medium text-brand-600 hover:text-brand-500">create a new account</Link>
-        </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/80 backdrop-blur-xl py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-2xl sm:px-10 border border-white">
-          
-          {error && (
-            <div className="mb-6 p-4 bg-red-50/50 border border-red-200 text-red-600 rounded-xl text-sm font-medium text-center">
-              {error}
-            </div>
-          )}
+      {/* Right Side - Visuals */}
+      <div className="hidden lg:flex relative w-0 flex-1 bg-slate-900 items-center justify-center overflow-hidden">
+        {/* Abstract Background Gradients */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-900"></div>
+        <div className="absolute w-[600px] h-[600px] bg-indigo-500/20 rounded-full blur-[100px] -top-20 -right-20 animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] bottom-10 left-10 animate-pulse" style={{ animationDuration: '10s', animationDelay: '1s' }}></div>
+        
+        {/* Subtle Dot Grid */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email address</label>
-              <input
-                name="email" type="email" required
-                value={formData.email} onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                name="password" type="password" required
-                value={formData.password} onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                placeholder="••••••••"
-              />
-              <div className="flex justify-end mt-1">
-                <Link to="/forgot-password" className="text-xs font-medium text-brand-600 hover:text-brand-500">Forgot password?</Link>
+        {/* Content */}
+        <div className="relative z-10 p-12 max-w-2xl">
+          <div className="mb-8 inline-flex px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-indigo-200 text-sm font-medium tracking-wide">
+            Waveword AI OS v2.0
+          </div>
+          
+          <h1 className="text-5xl font-extrabold text-white mb-6 leading-[1.15]">
+            Unleash your creativity with <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">intelligent tools.</span>
+          </h1>
+          
+          <p className="text-lg text-indigo-100/70 mb-12 max-w-xl leading-relaxed">
+            Join thousands of creators and professionals. Generate documents, animate handwriting, manage PDFs, and consult AI mentors—all in one place.
+          </p>
+
+          {/* Floating UI Elements / Features */}
+          <div className="grid grid-cols-2 gap-5 text-left">
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl hover:bg-white/10 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center mb-4 border border-indigo-500/30">
+                <svg className="w-6 h-6 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
+              <h3 className="text-white font-semibold mb-1 text-lg">AI Mentors</h3>
+              <p className="text-sm text-indigo-200/60 leading-relaxed">Chat with specialized AI experts to guide your projects.</p>
             </div>
-            
-            <button
-              type="submit" disabled={isLoading}
-              className="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 transition-all disabled:opacity-50"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl hover:bg-white/10 transition-colors transform translate-y-6">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 border border-purple-500/30">
+                <svg className="w-6 h-6 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </div>
+              <h3 className="text-white font-semibold mb-1 text-lg">Writing Animator</h3>
+              <p className="text-sm text-indigo-200/60 leading-relaxed">Turn digital text into realistic, animated handwriting.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

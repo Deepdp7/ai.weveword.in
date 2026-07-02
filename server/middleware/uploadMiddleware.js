@@ -2,12 +2,11 @@ import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import cloudinary from '../config/cloudinary.js';
 
-// Map MIME types to Cloudinary resource types
 const getResourceType = (mimetype) => {
   if (mimetype.startsWith('image/')) return 'image';
   if (mimetype.startsWith('video/')) return 'video';
-  if (mimetype === 'application/pdf') return 'image';
-  return 'raw'; // DOCX, PPTX, etc.
+  // Upload PDFs as raw so they are served exactly as-is and don't fail to load in browser
+  return 'raw';
 };
 
 // Map MIME types to our file type enum

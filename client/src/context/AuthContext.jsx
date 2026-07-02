@@ -19,6 +19,13 @@ export const AuthProvider = ({ children }) => {
     const stored = localStorage.getItem('waveword-ai_user');
     if (stored) {
       setUser(JSON.parse(stored));
+      // Fetch fresh data from backend
+      axios.get(`${API_BASE}/auth/profile`)
+        .then(res => {
+          setUser(res.data.user);
+          localStorage.setItem('waveword-ai_user', JSON.stringify(res.data.user));
+        })
+        .catch(err => console.error('Failed to refresh profile', err));
     }
     setLoading(false);
   }, []);
@@ -37,8 +44,8 @@ export const AuthProvider = ({ children }) => {
   /**
    * Register — calls POST /api/auth/signup
    */
-  const register = async (name, email, password) => {
-    const { data } = await axios.post(`${API_BASE}/auth/signup`, { name, email, password });
+  const register = async (name, email, password, referralCode) => {
+    const { data } = await axios.post(`${API_BASE}/auth/signup`, { name, email, password, referralCode });
     setUser(data.user);
     localStorage.setItem('waveword-ai_user', JSON.stringify(data.user));
     return data.user;

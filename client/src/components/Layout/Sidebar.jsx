@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, PenTool, LayoutTemplate, FileText, Image as ImageIcon, Scissors, Crop, Video, FileSignature, Folder, Presentation, User, LogOut, ShieldCheck, Coins, Brain, Sparkles, Minimize, Wand2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import logoUrl from '../../assets/logo2.png';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
@@ -29,7 +30,6 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Image Resizer', path: '/image-resizer', icon: Minimize },
     { name: 'Signature Generator', path: '/signature', icon: FileSignature },
     { name: 'Writing Animator', path: '/animator', icon: Video },
-    { name: 'Scan & Fix', path: '/scan-fix', icon: Wand2 },
     { name: 'Credits', path: '/credits', icon: Coins },
   ];
 
@@ -41,12 +41,9 @@ export default function Sidebar({ isOpen, onClose }) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}
     >
-      <div className="h-16 flex items-center px-6 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-            <PenTool className="text-white w-5 h-5" />
-          </div>
-          <span className="text-xl font-bold text-gray-900 tracking-tight">Waveword AI</span>
+      <div className="py-6 flex items-center justify-center px-6 border-b border-gray-100">
+        <div className="flex items-center justify-center w-full">
+          <img src={logoUrl} alt="Logo" className="w-full max-w-[130px] h-auto object-contain drop-shadow-md" />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto py-4">

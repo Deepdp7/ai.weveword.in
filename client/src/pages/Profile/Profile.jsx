@@ -192,6 +192,27 @@ export default function Profile() {
                           <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><CheckCircle2 size={10} /> Verified</span>
                         </div>
                       </div>
+                      <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-indigo-900 mb-1">Your Referral Code</p>
+                          <p className="text-xs text-indigo-700">Share this code! New users get 120 credits, you get 100 credits.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-indigo-200">
+                          <span className="font-mono font-bold text-indigo-600 tracking-wider">{user?.referralCode || 'NO-CODE'}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(user?.referralCode || '');
+                              setSuccess('Referral code copied to clipboard!');
+                              setTimeout(() => setSuccess(''), 3000);
+                            }}
+                            className="p-1 hover:bg-indigo-50 rounded text-indigo-500 transition-colors"
+                            title="Copy Code"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-6 flex justify-end">

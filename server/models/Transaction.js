@@ -10,7 +10,7 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['purchase', 'ad_reward', 'tool_usage', 'subscription', 'refund', 'bonus', 'coupon'],
+      enum: ['purchase', 'ad_reward', 'tool_usage', 'subscription', 'refund', 'bonus', 'coupon', 'referral'],
       required: true
     },
     description: {

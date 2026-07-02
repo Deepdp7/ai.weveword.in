@@ -2,13 +2,15 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import generateToken from '../utils/generateToken.js';
 import { sendWelcomeEmail } from '../utils/emailService.js';
+import crypto from 'crypto';
+import Transaction from '../models/Transaction.js';
 
 // @desc    Register a new user
 // @route   POST /api/auth/signup
 // @access  Public
 export const signupUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, referralCode } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -16,9 +18,22 @@ export const signupUser = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'User already exists' });
     }
 
+    let referrer = null;
+    let initialCredits = 100;
+
+    if (referralCode) {
+      referrer = await User.findOne({ referralCode });
+      if (referrer) {
+        initialCredits = 120;
+      }
+    }
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
+    
+    // Generate unique code
+    const userReferralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
     // Create user
     const user = await User.create({
@@ -26,13 +41,37 @@ export const signupUser = async (req, res) => {
       email,
       passwordHash,
       plan: 'free',
-      credits: 0
+      credits: initialCredits,
+      referralCode: userReferralCode,
+      referredBy: referrer ? referrer._id : null
     });
 
     if (user) {
+      // Transaction for new user
+      await Transaction.create({
+        userId: user._id,
+        type: 'bonus',
+        description: referrer ? 'Signup bonus with referral' : 'Signup bonus',
+        credits: initialCredits,
+        balanceAfter: initialCredits
+      });
+
+      // Reward referrer
+      if (referrer) {
+        referrer.credits += 100;
+        await referrer.save();
+        await Transaction.create({
+          userId: referrer._id,
+          type: 'referral',
+          description: `Referral bonus for inviting ${user.name}`,
+          credits: 100,
+          balanceAfter: referrer.credits
+        });
+      }
+
       const token = generateToken(res, user._id);
 
-      // Fire welcome email asynchronously (don't block response)
+      // Fire welcome email asynchronously
       sendWelcomeEmail(user.email, user.name).catch(err =>
         console.error('Welcome email failed:', err.message)
       );
@@ -46,7 +85,8 @@ export const signupUser = async (req, res) => {
           role: user.role,
           plan: user.plan,
           credits: user.credits,
-          avatar: user.avatar
+          avatar: user.avatar,
+          referralCode: user.referralCode
         },
         token
       });
@@ -94,7 +134,8 @@ export const loginUser = async (req, res) => {
           role: user.role,
           plan: user.plan,
           credits: user.credits,
-          avatar: user.avatar
+          avatar: user.avatar,
+          referralCode: user.referralCode
         },
         token
       });
@@ -123,8 +164,13 @@ export const logoutUser = (req, res) => {
 // @access  Private
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-passwordHash');
+    let user = await User.findById(req.user._id).select('-passwordHash');
     if (user) {
+      // Auto-generate for legacy users missing a code
+      if (!user.referralCode) {
+        user.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+        await user.save();
+      }
       res.status(200).json({
         status: 'success',
         user
