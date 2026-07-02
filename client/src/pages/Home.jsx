@@ -1,7 +1,10 @@
 import { ArrowRight, PenTool, Image as ImageIcon, Video, FileText, FileSignature, LayoutTemplate, Clock, Scissors } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
+  const { user } = useAuth();
+
   const tools = [
     { name: 'Studio', desc: 'Create & edit documents', icon: PenTool, path: '/studio', color: 'bg-brand-500', bg: 'bg-brand-50' },
     { name: 'BG Remover', desc: 'Remove backgrounds instantly', icon: Scissors, path: '/bg-remover', color: 'bg-indigo-500', bg: 'bg-indigo-50' },
@@ -20,7 +23,7 @@ export default function Home() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 to-brand-800 text-white p-8 md:p-12 shadow-xl shadow-brand-500/20">
         <div className="relative z-10 max-w-2xl">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            Welcome back to Waveword AI!
+            Welcome {user ? 'back ' : ''}to Waveword AI!
           </h1>
           <p className="text-brand-100 text-lg mb-8 max-w-xl leading-relaxed">
             Your all-in-one platform for creative document productivity. What would you like to create today?

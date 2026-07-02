@@ -33,6 +33,15 @@ const AdminRoute = ({ children }) => {
   }
   return children;
 };
+
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  return children;
+};
+
 function App() {
   const { user, loading } = useAuth();
 
@@ -47,37 +56,37 @@ function App() {
         <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/" />} />
         <Route path="/forgot-password" element={!user ? <ForgotPassword /> : <Navigate to="/" />} />
         
-        {/* Protected Routes */}
-        <Route path="/" element={user ? <MainLayout /> : <Navigate to="/login" />}>
+        {/* Main Layout - Now Public */}
+        <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
           
           {/* Signature Generator */}
-          <Route path="signature" element={<Signature />} />
+          <Route path="signature" element={<ProtectedRoute><Signature /></ProtectedRoute>} />
 
           {/* Micro Note Maker */}
-          <Route path="micro-notes" element={<MicroNoteMaker />} />
+          <Route path="micro-notes" element={<ProtectedRoute><MicroNoteMaker /></ProtectedRoute>} />
 
           {/* Writing Animator */}
-          <Route path="animator" element={<Animator />} />
+          <Route path="animator" element={<ProtectedRoute><Animator /></ProtectedRoute>} />
 
 
           {/* Studio Tools */}
-          <Route path="studio" element={<Studio />} />
-          <Route path="bg-remover" element={<BgRemover />} />
-          <Route path="image-resizer" element={<ImageResizer />} />
+          <Route path="studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
+          <Route path="bg-remover" element={<ProtectedRoute><BgRemover /></ProtectedRoute>} />
+          <Route path="image-resizer" element={<ProtectedRoute><ImageResizer /></ProtectedRoute>} />
 
           {/* Project Builder */}
-          <Route path="project" element={<ProjectBuilder />} />
-          <Route path="project-builder" element={<ProjectBuilder />} />
+          <Route path="project" element={<ProtectedRoute><ProjectBuilder /></ProtectedRoute>} />
+          <Route path="project-builder" element={<ProtectedRoute><ProjectBuilder /></ProtectedRoute>} />
 
           {/* Cloud Library */}
-          <Route path="library" element={<Library />} />
+          <Route path="library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
 
           {/* PPT Maker */}
-          <Route path="ppt-maker" element={<PPTMaker />} />
+          <Route path="ppt-maker" element={<ProtectedRoute><PPTMaker /></ProtectedRoute>} />
 
           {/* Profile */}
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
           {/* Admin */}
           <Route path="admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
@@ -85,13 +94,13 @@ function App() {
           <Route path="admin/tasks" element={<AdminRoute><TaskHistory /></AdminRoute>} />
 
           {/* Credit Shop */}
-          <Route path="credits" element={<CreditShop />} />
+          <Route path="credits" element={<ProtectedRoute><CreditShop /></ProtectedRoute>} />
 
           {/* PDF Tools */}
-          <Route path="pdf-tools" element={<PDFHub />} />
-          <Route path="pdf-tools/merge" element={<MergePDF />} />
-          <Route path="pdf-tools/images-to-pdf" element={<ImagesToPDF />} />
-          <Route path="pdf-tools/:toolKey" element={<GenericConverter />} />
+          <Route path="pdf-tools" element={<ProtectedRoute><PDFHub /></ProtectedRoute>} />
+          <Route path="pdf-tools/merge" element={<ProtectedRoute><MergePDF /></ProtectedRoute>} />
+          <Route path="pdf-tools/images-to-pdf" element={<ProtectedRoute><ImagesToPDF /></ProtectedRoute>} />
+          <Route path="pdf-tools/:toolKey" element={<ProtectedRoute><GenericConverter /></ProtectedRoute>} />
           
         </Route>
       </Routes>
