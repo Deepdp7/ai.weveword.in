@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, IndianRupee, Coins, FileText, TrendingUp, ArrowUpRight, UserCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import { Users, IndianRupee, Coins, FileText, TrendingUp, ArrowUpRight, UserCheck, AlertCircle, RefreshCw, ClipboardList } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 const formatINR = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -30,8 +30,8 @@ export default function Dashboard() {
 
   const kpis = stats ? [
     { label: 'Total Users', value: stats.totalUsers.toLocaleString(), sub: `+${stats.newUsersThisWeek} this week`, icon: Users, color: 'blue' },
-    { label: 'Total Revenue', value: formatINR(stats.totalRevenue), sub: `${formatINR(stats.monthRevenue)} this month`, icon: IndianRupee, color: 'green' },
-    { label: 'Credits Sold', value: stats.creditsSold.toLocaleString(), sub: `${stats.totalTransactions} transactions`, icon: Coins, color: 'yellow' },
+    { label: 'Weekly Revenue', value: formatINR(stats.weeklyRevenue), sub: `${formatINR(stats.monthRevenue)} this month`, icon: IndianRupee, color: 'green' },
+    { label: 'Total Tool Uses', value: (stats.totalToolUses || 0).toLocaleString(), sub: `${stats.totalTransactions} total transactions`, icon: Coins, color: 'yellow' },
     { label: 'Files Stored', value: stats.totalFiles.toLocaleString(), sub: 'Active files', icon: FileText, color: 'purple' },
   ] : [];
 
@@ -43,16 +43,19 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-8">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1">Real-time KolomFlow platform overview.</p>
+          <p className="text-gray-500 mt-1">Real-time Waveword AI platform overview.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <button onClick={fetchStats} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm font-medium">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
+          <Link to="/admin/tasks" className="flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-medium transition-colors border border-indigo-200">
+            <ClipboardList className="w-4 h-4" /> Task History
+          </Link>
           <Link to="/admin/users" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
             <Users className="w-4 h-4" /> Manage Users
           </Link>

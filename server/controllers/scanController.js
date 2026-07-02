@@ -1,5 +1,6 @@
 import cloudinary from '../config/cloudinary.js';
 import File from '../models/File.js';
+import { deductCredits } from '../utils/creditManager.js';
 
 export const enhanceDocument = async (req, res) => {
   try {
@@ -25,7 +26,7 @@ export const enhanceDocument = async (req, res) => {
     }
 
     const result = await cloudinary.uploader.upload(image, {
-      folder: `kolomflow/users/${req.user._id}/scan`,
+      folder: `waveword-ai/users/${req.user._id}/scan`,
       transformation
     });
 
@@ -38,6 +39,8 @@ export const enhanceDocument = async (req, res) => {
       fileType: 'jpg',
       size: result.bytes
     });
+
+    await deductCredits(req.user._id, 5, 'scan', 'Enhanced scanned document');
 
     res.status(200).json({ 
       status: 'success', 

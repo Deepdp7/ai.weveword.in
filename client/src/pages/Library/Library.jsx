@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, Folder, File, Image as ImageIcon, FileText, Video, Download, Trash2, Share2, Filter, MoreVertical, Upload, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, Folder, File, Image as ImageIcon, FileText, Video, Download, Trash2, Share2, Filter, MoreVertical, Upload, RefreshCw, AlertCircle, Lock, Crown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 const FOLDERS = [
@@ -52,6 +53,7 @@ export default function Library() {
   const [storage, setStorage] = useState({ usedGB: '0', limitGB: '10', percentUsed: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isProRequired, setIsProRequired] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const fetchFiles = useCallback(async () => {
@@ -70,7 +72,11 @@ export default function Library() {
       setFiles(filesRes.data.files || []);
       setStorage(storageRes.data.storage || {});
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load files. Is the server running?');
+      if (err.response?.status === 403) {
+        setIsProRequired(true);
+      } else {
+        setError(err.response?.data?.message || 'Failed to load files. Is the server running?');
+      }
     } finally {
       setLoading(false);
     }
@@ -194,15 +200,31 @@ export default function Library() {
           </div>
 
           {/* Error State */}
-          {error && (
+          {error && !isProRequired && (
             <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 mb-6">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
           )}
 
-          {/* Loading State */}
-          {loading ? (
+          {isProRequired ? (
+            <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-indigo-200 border-dashed shadow-sm flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 relative">
+                <Folder className="w-8 h-8 opacity-50" />
+                <Lock className="w-6 h-6 absolute text-indigo-700" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Cloud Library is a Pro Feature</h3>
+              <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
+                Upgrade to the Pro plan to access unlimited cloud storage, view your generated files anywhere, and unlock all premium tools.
+              </p>
+              <Link
+                to="/credits"
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg hover:opacity-90 transition-all flex items-center gap-2"
+              >
+                <Crown className="w-5 h-5" /> Upgrade to Pro
+              </Link>
+            </div>
+          ) : loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} className="bg-white p-5 rounded-2xl border border-gray-200 animate-pulse">

@@ -54,7 +54,7 @@ export default function MergePDF() {
     });
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/pdf/merge`, formData, {
+      const response = await axios.post(`http://${window.location.hostname}:5000/api/pdf/merge`, formData, {
         responseType: 'blob' // important for file download
       });
       
@@ -124,7 +124,7 @@ export default function MergePDF() {
                     const url = window.URL.createObjectURL(new Blob([resultBlob]));
                     const link = document.createElement('a');
                     link.href = url;
-                    link.setAttribute('download', 'Merged_KolomFlow.pdf');
+                    link.setAttribute('download', 'Merged_Waveword AI.pdf');
                     document.body.appendChild(link);
                     link.click();
                     link.parentNode.removeChild(link);
@@ -139,9 +139,9 @@ export default function MergePDF() {
                     setIsSavingCloud(true);
                     try {
                       const uploadData = new FormData();
-                      uploadData.append('file', new File([resultBlob], 'Merged_KolomFlow.pdf', { type: 'application/pdf' }));
+                      uploadData.append('file', new File([resultBlob], 'Merged_Waveword AI.pdf', { type: 'application/pdf' }));
                       uploadData.append('toolSource', 'pdf');
-                      await axios.post(`http://localhost:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      await axios.post(`http://${window.location.hostname}:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       alert('Saved to Cloud Library!');
                     } catch (e) { alert('Failed to save to cloud.'); }
                     setIsSavingCloud(false);

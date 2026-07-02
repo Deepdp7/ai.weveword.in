@@ -17,6 +17,7 @@ import {
   Settings,
   Edit3,
   Eye,
+  Zap,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useToast } from '../../components/toastStore';
@@ -25,7 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 export default function ProjectBuilder() {
@@ -114,9 +115,12 @@ export default function ProjectBuilder() {
     if (action === 'cloud') setIsSavingCloud(true);
     else setIsGenerating(true);
 
-    addToast(action === 'cloud' ? 'Saving to cloud...' : 'Generating your assignment PDF...', 'loading');
+    addToast('Verifying credits...', 'loading');
 
     try {
+      await axios.post(`${API}/payments/credits/deduct`, { toolKey: 'project' });
+      
+      addToast(action === 'cloud' ? 'Saving to cloud...' : 'Generating your assignment PDF...', 'loading');
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -339,7 +343,7 @@ export default function ProjectBuilder() {
     } catch (err) {
       console.error('Assignment generation failed:', err);
       clearToasts();
-      addToast(action === 'cloud' ? 'Failed to save to cloud.' : 'Failed to build assignment.', 'error');
+      addToast(err.response?.data?.message || (action === 'cloud' ? 'Failed to save to cloud.' : 'Failed to build assignment.'), 'error');
     } finally {
       setIsGenerating(false);
       setIsSavingCloud(false);
@@ -352,6 +356,9 @@ export default function ProjectBuilder() {
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 text-brand-600 rounded-full text-[10px] font-black tracking-widest uppercase border border-brand-100">
           <Sparkles className="w-3 h-3" /> AI ACADEMIC STUDIO
+          <div className="ml-2 pl-2 border-l border-brand-200 flex items-center gap-1 text-yellow-600">
+            <Zap className="w-3 h-3 fill-current" /> COST: 15 CREDITS
+          </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">
           Assignment <span className="text-brand-600">Builder</span>

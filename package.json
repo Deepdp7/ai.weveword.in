@@ -1,8 +1,8 @@
 {
-  "name": "kolomflow-root",
+  "name": "waveword-ai-root",
   "version": "1.0.0",
   "private": true,
-  "description": "KolomFlow root workspace for Capacitor mobile app integration",
+  "description": "Waveword AI root workspace for Capacitor mobile app integration",
   "scripts": {
     "client:build": "npm run build --prefix client",
     "cap:add": "npx cap add android",

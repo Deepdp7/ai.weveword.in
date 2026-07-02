@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `http://${window.location.hostname}:5000/api`;
 
 // Enable cookies to be sent with every request automatically
 axios.defaults.withCredentials = true;
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Rehydrate user from localStorage on app load
-    const stored = localStorage.getItem('kolomflow_user');
+    const stored = localStorage.getItem('waveword-ai_user');
     if (stored) {
       setUser(JSON.parse(stored));
     }
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await axios.post(`${API_BASE}/auth/login`, { email, password });
     setUser(data.user);
-    localStorage.setItem('kolomflow_user', JSON.stringify(data.user));
+    localStorage.setItem('waveword-ai_user', JSON.stringify(data.user));
     return data.user;
   };
 
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     const { data } = await axios.post(`${API_BASE}/auth/signup`, { name, email, password });
     setUser(data.user);
-    localStorage.setItem('kolomflow_user', JSON.stringify(data.user));
+    localStorage.setItem('waveword-ai_user', JSON.stringify(data.user));
     return data.user;
   };
 
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
       // Ignore network errors — still clear local state
     }
     setUser(null);
-    localStorage.removeItem('kolomflow_user');
+    localStorage.removeItem('waveword-ai_user');
   };
 
   return (

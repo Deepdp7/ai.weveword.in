@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Coins, Zap, Crown, Star, Check, TrendingUp, History, PlayCircle, AlertCircle } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 const PACK_ICONS = { starter: Zap, popular: Star, pro: Crown, elite: Crown };
@@ -66,7 +66,7 @@ export default function CreditShop() {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'KolomFlow',
+        name: 'Waveword AI',
         description: order.pack.label,
         order_id: order.id,
         handler: async (response) => {
@@ -110,22 +110,26 @@ export default function CreditShop() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-8">
+    <div className="max-w-5xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Credit Shop</h1>
-          <p className="text-gray-500 mt-1">Power your creativity with KolomFlow credits.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Credit Shop</h1>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">Power your creativity with Waveword AI credits.</p>
         </div>
         {/* Live Balance Card */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white px-6 py-4 rounded-2xl shadow-lg shadow-indigo-200 flex items-center gap-4 min-w-[200px]">
-          <div className="p-2 bg-white/20 rounded-xl">
-            <Coins className="w-7 h-7" />
+        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white px-5 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-lg shadow-indigo-200 flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 bg-white/20 rounded-xl shrink-0">
+              <Coins className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm opacity-80">Your Balance</p>
+              <p className="text-2xl sm:text-3xl font-extrabold leading-none mt-1">{loading ? '—' : balance.credits.toLocaleString()}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm opacity-80">Your Balance</p>
-            <p className="text-3xl font-extrabold">{loading ? '—' : balance.credits.toLocaleString()}</p>
-            <p className="text-xs opacity-70 capitalize mt-0.5">{balance.plan} plan</p>
+          <div className="text-right sm:text-left">
+             <p className="text-[10px] sm:text-xs opacity-70 uppercase tracking-wider font-bold bg-white/10 px-2 py-1 rounded-md">{balance.plan} plan</p>
           </div>
         </div>
       </div>
@@ -138,12 +142,12 @@ export default function CreditShop() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex overflow-x-auto scrollbar-hide gap-2 mb-6 sm:mb-8 bg-gray-100 p-1 rounded-xl w-full sm:w-fit">
         {[['credits', 'Credit Packs'], ['plans', 'Subscriptions'], ['history', 'History']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`flex-1 sm:flex-none whitespace-nowrap px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
           >
             {label}
           </button>
@@ -154,21 +158,21 @@ export default function CreditShop() {
       {tab === 'credits' && (
         <div>
           {/* Earn Free Credits Banner */}
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600">
-                <PlayCircle className="w-7 h-7" />
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
+              <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600 shrink-0">
+                <PlayCircle className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Earn Free Credits by Watching Ads</h3>
-                <p className="text-gray-600 text-sm mt-0.5">Watch a 30-second ad and earn <strong>10 credits</strong> instantly.</p>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base">Earn Free Credits by Watching Ads</h3>
+                <p className="text-gray-600 text-xs sm:text-sm mt-0.5">Watch a 30-second ad and earn <strong>5 credits</strong> instantly.</p>
               </div>
             </div>
             <button
               onClick={handleAdReward}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shrink-0"
             >
-              Watch Ad (+10)
+              Watch Ad (+5)
             </button>
           </div>
 
@@ -201,17 +205,16 @@ export default function CreditShop() {
 
       {/* ── Subscription Plans ── */}
       {tab === 'plans' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex flex-wrap gap-6">
           {packs.planPacks.map((plan) => {
             const colors = PLAN_COLORS[plan.id] || PLAN_COLORS.basic;
             const isActive = balance.plan === plan.plan;
             const features = {
               basic: ['2,000 credits/month', '5 GB storage', 'Ad-free experience', 'Priority support'],
-              pro: ['6,000 credits/month', '10 GB storage', 'Ad-free experience', 'API access', 'All tools unlocked'],
-              elite: ['15,000 credits/month', '50 GB storage', 'Ad-free experience', 'API access', 'White-label exports', 'Dedicated support'],
+              pro: ['2,000 credits/month', 'Cloud library access', 'Ad-free experience', 'Priority support', 'All tools unlocked'],
             };
             return (
-              <div key={plan.id} className={`relative bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all overflow-hidden ${plan.id === 'pro' ? 'ring-2 ring-indigo-400 border-indigo-300' : 'border-gray-200'}`}>
+              <div key={plan.id} className={`relative bg-white w-full sm:w-[320px] lg:w-[340px] rounded-2xl border shadow-sm hover:shadow-md transition-all overflow-hidden shrink-0 ${plan.id === 'pro' ? 'ring-2 ring-indigo-400 border-indigo-300' : 'border-gray-200'}`}>
                 {plan.id === 'pro' && <div className="text-center text-xs font-bold bg-indigo-600 text-white py-1.5">RECOMMENDED</div>}
                 <div className={`bg-gradient-to-br ${colors.bg} p-6 text-white`}>
                   <Crown className="w-8 h-8 mb-3 opacity-80" />
@@ -242,8 +245,8 @@ export default function CreditShop() {
 
       {/* ── Transaction History ── */}
       {tab === 'history' && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100 min-w-[300px]">
             <h2 className="font-bold text-gray-900">Transaction History</h2>
           </div>
           {transactions.length === 0 ? (
@@ -254,7 +257,7 @@ export default function CreditShop() {
           ) : (
             <div className="divide-y divide-gray-50">
               {transactions.map(tx => (
-                <div key={tx._id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div key={tx._id} className="flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors min-w-[300px]">
                   <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
                       {txIcon(tx.type)}

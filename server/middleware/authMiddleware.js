@@ -44,3 +44,27 @@ export const adminOnly = (req, res, next) => {
     res.status(403).json({ status: 'error', message: 'Access denied. Admin only.' });
   }
 };
+
+export const checkCredits = (amount) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ status: 'error', message: 'Not authorized' });
+      }
+
+      if (req.user.credits < amount) {
+        return res.status(402).json({ 
+          status: 'error', 
+          message: `Insufficient credits. This action requires ${amount} credits.`,
+          requiredCredits: amount,
+          currentCredits: req.user.credits
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Check credits error:', error);
+      res.status(500).json({ status: 'error', message: 'Failed to verify credits' });
+    }
+  };
+};

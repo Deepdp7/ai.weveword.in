@@ -49,7 +49,7 @@ export default function Profile() {
         avatar: profileData.avatar
       });
       // Update local storage and context
-      localStorage.setItem('kolomflow_user', JSON.stringify(data.user));
+      localStorage.setItem('waveword-ai_user', JSON.stringify(data.user));
       // Assuming setUser is exposed from context (I need to check if I added it)
       // If not, I'll update AuthContext to expose it or just use the local state update
       window.location.reload(); // Quick way to sync everything for now
@@ -90,7 +90,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <div className="max-w-6xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Account Profile</h1>
         <p className="text-gray-500 mt-1">Manage your personal information, security, and preferences.</p>

@@ -11,7 +11,7 @@ const uploadAndSave = async ({ userId, buffer, fileName, toolSource }) => {
     const dataUri = `data:application/pdf;base64,${base64Data}`;
 
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: `kolomflow/users/${userId}/pdf`,
+      folder: `waveword-ai/users/${userId}/pdf`,
       resource_type: 'image',
       type: 'upload',
       access_mode: 'public'

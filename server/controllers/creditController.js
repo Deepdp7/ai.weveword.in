@@ -3,16 +3,23 @@ import Transaction from '../models/Transaction.js';
 
 // Tool credit costs (mirrors PRD Section 10.2)
 export const TOOL_COSTS = {
-  studio_per_page: 5,
-  scan_fix: 10,
-  animator_per_video: 20,
-  signature_download: 3,
-  pdf_merge: 2,
-  pdf_split: 2,
-  pdf_compress: 5,
-  pdf_convert: 5,
-  ppt_export: 15,
-  project_export: 10,
+  studio_per_page: 10,
+  studio: 10,
+  scan_fix: 5,
+  scan: 5,
+  animator_per_video: 15,
+  animator: 15,
+  signature_download: 5,
+  signature: 5,
+  pdf_merge: 0,
+  pdf_split: 0,
+  pdf_compress: 0,
+  pdf_convert: 0,
+  pdf: 0,
+  ppt_export: 20,
+  ppt: 20,
+  project_export: 15,
+  project: 15,
 };
 
 // @desc    Deduct credits for a tool action
@@ -67,7 +74,7 @@ export const awardAdCredits = async (req, res) => {
   try {
     const { adType } = req.body; // '15sec' or '30sec'
 
-    const rewards = { '15sec': 5, '30sec': 10 };
+    const rewards = { '15sec': 5, '30sec': 5 };
     const earned = rewards[adType];
 
     if (!earned) {

@@ -6,6 +6,8 @@ import {
   updateUserPlan,
   deleteUser,
   getAllTransactions,
+  updateUserRole,
+  getAdminTasks,
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
@@ -21,7 +23,11 @@ router.get('/stats', getDashboardStats);
 router.get('/users', getAllUsers);
 router.patch('/users/:id/ban', toggleBanUser);
 router.patch('/users/:id/plan', updateUserPlan);
+router.patch('/users/:id/role', updateUserRole);
 router.delete('/users/:id', deleteUser);
+
+// Tasks (Admin task history)
+router.get('/tasks', getAdminTasks);
 
 // Transactions (platform-wide)
 router.get('/transactions', getAllTransactions);

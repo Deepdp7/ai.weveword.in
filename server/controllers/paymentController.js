@@ -4,25 +4,27 @@ import Payment from '../models/Payment.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 
-// Initialize Razorpay instance
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpayInstance = null;
+const getRazorpay = () => {
+  if (!razorpayInstance) {
+    razorpayInstance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return razorpayInstance;
+};
 
 // Credit Pack configuration (mirrors PRD Section 11)
 export const CREDIT_PACKS = {
-  starter: { credits: 500, amount: 4900, label: 'Starter Pack' },       // ₹49
-  popular: { credits: 1500, amount: 9900, label: 'Popular Pack' },      // ₹99
-  pro: { credits: 4000, amount: 19900, label: 'Pro Pack' },             // ₹199
-  elite: { credits: 10000, amount: 39900, label: 'Elite Pack' },        // ₹399
+  starter: { credits: 100, amount: 4900, label: 'Starter Pack' },       // ₹49
+  popular: { credits: 150, amount: 9900, label: 'Popular Pack' },      // ₹99
+  pro: { credits: 450, amount: 19900, label: 'Pro Pack' },             // ₹199
 };
 
 // Subscription Plan configuration (mirrors PRD Section 9)
 export const PLAN_PACKS = {
-  basic: { credits: 2000, amount: 14900, label: 'Basic Plan', plan: 'basic' },   // ₹149/mo
-  pro: { credits: 6000, amount: 24900, label: 'Pro Plan', plan: 'pro' },         // ₹249/mo
-  elite: { credits: 15000, amount: 49900, label: 'Elite Plan', plan: 'elite' },  // ₹499/mo
+  pro: { credits: 2000, amount: 49900, label: 'Pro Plan', plan: 'pro' }, // ₹499/mo
 };
 
 // @desc    Create Razorpay order for credit pack
@@ -42,7 +44,7 @@ export const createOrder = async (req, res) => {
     const options = {
       amount: pack.amount, // amount in paise
       currency: 'INR',
-      receipt: `rcpt_${req.user._id}_${Date.now()}`,
+      receipt: `rcpt_${req.user._id.toString().slice(-6)}_${Date.now()}`,
       notes: {
         userId: req.user._id.toString(),
         packId,
@@ -51,7 +53,7 @@ export const createOrder = async (req, res) => {
       },
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await getRazorpay().orders.create(options);
 
     // Save pending payment record
     await Payment.create({

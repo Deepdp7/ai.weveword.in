@@ -25,7 +25,7 @@ import { useToast } from "../../components/toastStore";
 import confetti from "canvas-confetti";
 import { jsPDF } from "jspdf";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = `http://${window.location.hostname}:5000/api`;
 
 const FONTS = [
   { name: "Dancing Script", family: "'Dancing Script', cursive" },
@@ -121,7 +121,7 @@ export default function Studio() {
   const [engine, setEngine] = useState("local");
   const [inkType, setInkType] = useState("gel");
   const [text, setText] = useState(
-    'Welcome to KolomFlow Studio!\n\nThis is where you can convert your typed text into realistic handwriting. Try changing the paper style or ink color to see how it looks.',
+    'Welcome to Waveword AI Studio!\n\nThis is where you can convert your typed text into realistic handwriting. Try changing the paper style or ink color to see how it looks.',
   );
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -329,9 +329,12 @@ export default function Studio() {
   const handleExportLocal = async (type = 'download') => {
     if (pages.length === 0) return;
     setIsExporting(true);
-    addToast(type === 'download' ? "Generating PDF..." : "Saving to Cloud Library...", "loading");
+    addToast('Verifying credits...', 'loading');
 
     try {
+      await axios.post(`${API_BASE}/payments/credits/deduct`, { toolKey: 'studio' });
+      addToast(type === 'download' ? "Generating PDF (10 Credits)..." : "Saving to Cloud Library (10 Credits)...", "loading");
+
       await document.fonts.ready;
 
       const html2canvas = (await import("html2canvas")).default;
@@ -389,7 +392,7 @@ export default function Studio() {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      const fileName = `KolomFlow_${Date.now()}.pdf`;
+      const fileName = `Waveword AI_${Date.now()}.pdf`;
 
       if (type === 'download') {
         pdf.save(fileName);
@@ -411,7 +414,7 @@ export default function Studio() {
     } catch (error) {
       console.error('Export failed:', error);
       clearToasts();
-      addToast(error.message || "Export failed. Please try again.", "error");
+      addToast(error.response?.data?.message || "Export failed. Please try again.", "error");
     } finally {
       setIsExporting(false);
     }
@@ -421,7 +424,7 @@ export default function Studio() {
   const handleExportServer = async (type = 'download') => {
     if (!text.trim()) return;
     setIsExporting(true);
-    addToast(type === 'download' ? "Downloading PDF from Cloud..." : "Saving PDF to Cloud Library...", "loading");
+    addToast(type === 'download' ? "Downloading PDF from Cloud (10 Credits)..." : "Saving PDF to Cloud Library (10 Credits)...", "loading");
     try {
       const response = await axios.post(`${API_BASE}/studio/export-pdf`, {
         text, color: inkColor, paperStyle: pageTheme,
@@ -430,7 +433,7 @@ export default function Studio() {
       }, { responseType: 'blob' });
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const fileName = `KolomFlow_${Date.now()}.pdf`;
+      const fileName = `Waveword AI_${Date.now()}.pdf`;
 
       if (type === 'download') {
         const url = window.URL.createObjectURL(blob);
@@ -1114,7 +1117,7 @@ export default function Studio() {
               <Settings2 className="w-3.5 h-3.5" /> Settings
             </button>
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 font-black text-[9px] uppercase">
-              <Zap size={10} className="fill-current" /> {engine === "local" ? "Free" : "1 Credit"}
+              <Zap size={10} className="fill-current" /> Cost: 10 Credits
             </div>
           </div>
 
@@ -1133,7 +1136,7 @@ export default function Studio() {
                 </div>
                 <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-2xl shadow-xl">
                   <Zap size={14} className="text-yellow-400 fill-current" />
-                  <span className="text-xs font-black tracking-tight">{engine === "local" ? "Cost: Free" : "Cost: 1 Credit"}</span>
+                  <span className="text-xs font-black tracking-tight">Cost: 10 Credits</span>
                 </div>
               </div>
 

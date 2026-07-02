@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { PenTool, Type, Download, Trash2, CheckCircle2, Save, Loader2, Image as ImageIcon } from 'lucide-react';
+import { PenTool, Type, Download, Trash2, CheckCircle2, Save, Loader2, Image as ImageIcon, Zap } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import axios from 'axios';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 const FONTS = [
@@ -96,7 +96,13 @@ export default function Signature() {
           <PenTool className="w-7 h-7" />
         </div>
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Signature Lab</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Signature Lab</h1>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-xl shadow-md">
+              <Zap size={14} className="text-yellow-400 fill-current" />
+              <span className="text-[10px] font-black tracking-tight uppercase">Cost: 5 Credits</span>
+            </div>
+          </div>
           <p className="text-gray-500">Generate and manage your high-quality digital signatures.</p>
         </div>
       </div>

@@ -28,7 +28,7 @@ export const getFileType = (mimetype) => {
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder: `kolomflow/${req.user._id}`,
+    folder: `waveword-ai/${req.user._id}`,
     resource_type: getResourceType(file.mimetype),
     // Keep original filename (sanitized)
     public_id: `${Date.now()}_${file.originalname.replace(/\s+/g, '_').replace(/\.[^/.]+$/, '')}`,

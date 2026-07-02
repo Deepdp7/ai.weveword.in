@@ -50,6 +50,10 @@ export const uploadFile = async (req, res) => {
 // @access  Private
 export const getMyFiles = async (req, res) => {
   try {
+    if (req.user.plan === 'free') {
+      return res.status(403).json({ status: 'error', message: 'Cloud Library is available for Pro users only.' });
+    }
+
     const { source, type, search } = req.query;
 
     const query = {

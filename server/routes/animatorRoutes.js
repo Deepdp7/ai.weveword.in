@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, checkCredits } from '../middleware/authMiddleware.js';
 import * as animatorController from '../controllers/animatorController.js';
 import path from 'path';
 
@@ -14,6 +14,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post('/save', protect, upload.single('video'), animatorController.saveVideo);
+router.post('/save', protect, checkCredits(15), upload.single('video'), animatorController.saveVideo);
 
 export default router;

@@ -36,8 +36,8 @@ app.use((req, res, next) => {
 app.use(helmet()); // Security headers
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow all localhost origins in development
-    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    // Allow localhost and local network IPs in development
+    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.') || origin.includes('10.')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -60,7 +60,7 @@ app.use((req, res, next) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'success', 
-    message: 'KolomFlow API is running!',
+    message: 'Waveword AI API is running!',
     timestamp: new Date().toISOString()
   });
 });

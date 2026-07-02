@@ -1,5 +1,6 @@
 import cloudinary from '../config/cloudinary.js';
 import File from '../models/File.js';
+import { deductCredits } from '../utils/creditManager.js';
 
 export const saveVideo = async (req, res) => {
   try {
@@ -7,7 +8,7 @@ export const saveVideo = async (req, res) => {
 
     // Upload to Cloudinary as video
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: `kolomflow/users/${req.user._id}/animator`,
+      folder: `waveword-ai/users/${req.user._id}/animator`,
       resource_type: 'video',
       public_id: `animation_${Date.now()}`
     });
@@ -21,6 +22,8 @@ export const saveVideo = async (req, res) => {
       fileType: 'mp4',
       size: result.bytes
     });
+
+    await deductCredits(req.user._id, 15, 'animator', 'Generated Writing Animation');
 
     res.status(200).json({ 
       status: 'success', 

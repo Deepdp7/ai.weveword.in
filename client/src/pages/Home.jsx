@@ -22,7 +22,7 @@ export default function Home() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 to-brand-800 text-white p-8 md:p-12 shadow-xl shadow-brand-500/20">
         <div className="relative z-10 max-w-2xl">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            Welcome back to KolomFlow!
+            Welcome back to Waveword AI!
           </h1>
           <p className="text-brand-100 text-lg mb-8 max-w-xl leading-relaxed">
             Your all-in-one platform for creative document productivity. What would you like to create today?

@@ -42,7 +42,7 @@ export default function SplitPDF() {
     formData.append('ranges', ranges);
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/pdf/split`, formData, {
+      const response = await axios.post(`http://${window.location.hostname}:5000/api/pdf/split`, formData, {
         responseType: 'blob'
       });
       
@@ -137,7 +137,7 @@ export default function SplitPDF() {
                       const url = window.URL.createObjectURL(new Blob([resultBlob]));
                       const link = document.createElement('a');
                       link.href = url;
-                      link.setAttribute('download', 'Extracted_KolomFlow.pdf');
+                      link.setAttribute('download', 'Extracted_Waveword AI.pdf');
                       document.body.appendChild(link);
                       link.click();
                       link.parentNode.removeChild(link);
@@ -152,9 +152,9 @@ export default function SplitPDF() {
                       setIsSavingCloud(true);
                       try {
                         const uploadData = new FormData();
-                        uploadData.append('file', new File([resultBlob], 'Extracted_KolomFlow.pdf', { type: 'application/pdf' }));
+                        uploadData.append('file', new File([resultBlob], 'Extracted_Waveword AI.pdf', { type: 'application/pdf' }));
                         uploadData.append('toolSource', 'pdf');
-                        await axios.post(`http://localhost:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        await axios.post(`http://${window.location.hostname}:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                         alert('Saved to Cloud Library!');
                       } catch (e) { alert('Failed to save to cloud.'); }
                       setIsSavingCloud(false);

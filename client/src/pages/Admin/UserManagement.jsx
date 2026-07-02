@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, UserX, UserCheck, Crown, Trash2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, UserX, UserCheck, Crown, Trash2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 const PLAN_BADGE = {
@@ -79,9 +79,19 @@ export default function UserManagement() {
     finally { setActionLoading(null); }
   };
 
+  const handleToggleRole = async (userId) => {
+    if (!confirm('Are you sure you want to toggle this user\'s admin status?')) return;
+    setActionLoading(userId + '_role');
+    try {
+      const { data } = await axios.patch(`${API}/admin/users/${userId}/role`);
+      setUsers(users.map(u => u._id === userId ? { ...u, role: data.role } : u));
+    } catch (err) { alert(err.response?.data?.message || 'Role update failed.'); }
+    finally { setActionLoading(null); }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto py-8">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-500 mt-1">{pagination.total.toLocaleString()} total users registered.</p>
@@ -106,9 +116,7 @@ export default function UserManagement() {
         <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none">
           <option value="">All Plans</option>
           <option value="free">Free</option>
-          <option value="basic">Basic</option>
           <option value="pro">Pro</option>
-          <option value="elite">Elite</option>
         </select>
         <select value={filterBanned} onChange={e => setFilterBanned(e.target.value)} className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none">
           <option value="">All Status</option>
@@ -184,6 +192,14 @@ export default function UserManagement() {
                         <Crown className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => handleToggleRole(user._id)}
+                        disabled={actionLoading === user._id + '_role'}
+                        className={`p-2 rounded-lg transition-colors ${user.role === 'admin' ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'} disabled:opacity-40`}
+                        title={user.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
+                      >
+                        <Shield className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleBan(user._id)}
                         disabled={actionLoading === user._id + '_ban' || user.role === 'admin'}
                         className={`p-2 rounded-lg transition-colors ${user.isBanned ? 'text-green-500 hover:bg-green-50' : 'text-orange-400 hover:bg-orange-50'} disabled:opacity-40`}
@@ -233,9 +249,7 @@ export default function UserManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">New Plan</label>
                 <select value={newPlan} onChange={e => setNewPlan(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                   <option value="free">Free</option>
-                  <option value="basic">Basic</option>
                   <option value="pro">Pro</option>
-                  <option value="elite">Elite</option>
                 </select>
               </div>
               <div>

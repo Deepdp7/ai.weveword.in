@@ -1,4 +1,4 @@
-# KolomFlow — Product Requirements Document (PRD)
+# Waveword AI — Product Requirements Document (PRD)
 
 > **Version:** 1.0.0 | **Date:** May 2026 | **Status:** Draft  
 > **Admin Credentials:** dp918121@gmail.com / 98749898
@@ -34,9 +34,9 @@
 
 ## 1. Product Overview
 
-**KolomFlow** is a full-stack all-in-one creative and document productivity platform for students, educators, content creators, and professionals. It combines handwriting tools, document conversion, photo restoration, animated writing videos, digital signature creation, academic project report building, PDF utilities, and presentation making — all in a single platform.
+**Waveword AI** is a full-stack all-in-one creative and document productivity platform for students, educators, content creators, and professionals. It combines handwriting tools, document conversion, photo restoration, animated writing videos, digital signature creation, academic project report building, PDF utilities, and presentation making — all in a single platform.
 
-The name **"Kalom"** means **Pen** in Bengali — representing writing, creativity, and knowledge. KolomFlow is available on web (Vite + React) and Android (via Capacitor), with a credit-based economy, ad rewards, subscription plans, and Razorpay payments.
+The name **"Kalom"** means **Pen** in Bengali — representing writing, creativity, and knowledge. Waveword AI is available on web (Vite + React) and Android (via Capacitor), with a credit-based economy, ad rewards, subscription plans, and Razorpay payments.
 
 ---
 
@@ -130,7 +130,7 @@ The name **"Kalom"** means **Pen** in Bengali — representing writing, creativi
 
 ### 6.1 Cloud Library
 
-**Description:** A private file vault where all files generated inside KolomFlow are automatically saved. Users cannot upload external files — only KolomFlow-generated outputs appear here.
+**Description:** A private file vault where all files generated inside Waveword AI are automatically saved. Users cannot upload external files — only Waveword AI-generated outputs appear here.
 
 **Features:**
 - Auto-save all tool outputs to the library
@@ -403,7 +403,7 @@ The name **"Kalom"** means **Pen** in Bengali — representing writing, creativi
 
 ## 8. Ads & Rewards System
 
-**Concept:** Users watch short ads (15–30 seconds) to earn free credits. KolomFlow earns ad revenue from Google AdSense (web) and AdMob (Android).
+**Concept:** Users watch short ads (15–30 seconds) to earn free credits. Waveword AI earns ad revenue from Google AdSense (web) and AdMob (Android).
 
 ### Ad Reward Rules
 
@@ -422,7 +422,7 @@ The name **"Kalom"** means **Pen** in Bengali — representing writing, creativi
 - Anti-abuse: server-side rate limiting; max ads per user per day enforced in DB
 
 ### Platform Revenue:
-- KolomFlow earns CPM-based revenue from Google AdSense / AdMob
+- Waveword AI earns CPM-based revenue from Google AdSense / AdMob
 - Ad earnings tracked in Admin Dashboard (daily/monthly revenue charts)
 
 ---
@@ -494,7 +494,7 @@ Every user has a Wallet page that shows credit balance, transaction history, ad 
 | **Max Saved Signatures** | 2 | 5 | 10 | Unlimited |
 | **Max Projects** | 2 | 10 | 30 | Unlimited |
 | **Priority Processing** | ❌ | ❌ | ✅ | ✅ |
-| **Watermark on Output** | ✅ KolomFlow | ❌ None | ❌ None | ❌ None |
+| **Watermark on Output** | ✅ Waveword AI | ❌ None | ❌ None | ❌ None |
 | **Support** | Community | Email | Priority Email | Dedicated |
 
 **Billing:** Monthly auto-renew via Razorpay Subscriptions API.  
@@ -651,7 +651,7 @@ Every user has a Wallet page that shows credit balance, transaction history, ad 
 ### Setup Commands:
 ```bash
 npm install @capacitor/core @capacitor/cli
-npx cap init KolomFlow com.kolomflow.app
+npx cap init Waveword AI com.waveword-ai.app
 npm install @capacitor/android
 npx cap add android
 npx cap sync
@@ -668,11 +668,11 @@ npx cap open android
 | `@capacitor/network` | Detect offline state and show fallback UI |
 | `@capacitor/push-notifications` | Notify on tool completion and credit alerts |
 | `@capacitor-community/admob` | In-app rewarded video ads (replaces AdSense) |
-| `@capacitor/status-bar` | Style status bar to match KolomFlow brand |
-| `@capacitor/splash-screen` | Branded KolomFlow splash screen on app launch |
+| `@capacitor/status-bar` | Style status bar to match Waveword AI brand |
+| `@capacitor/splash-screen` | Branded Waveword AI splash screen on app launch |
 
 ### Android-Specific Notes:
-- Downloads saved to `Downloads/KolomFlow/` on device
+- Downloads saved to `Downloads/Waveword AI/` on device
 - Camera and storage permissions requested at runtime (Android 13+ scoped storage)
 - AdMob App ID configured in `AndroidManifest.xml`
 - Minimum SDK: Android 7.0 (API Level 24)
@@ -694,7 +694,7 @@ npx cap open android
 - JWT stored in httpOnly, Secure, SameSite cookies (not localStorage)
 - Rate limiting on all auth routes (express-rate-limit)
 - Helmet.js for HTTP security headers (CSP, HSTS, X-Frame-Options)
-- CORS configured to whitelist only KolomFlow domains
+- CORS configured to whitelist only Waveword AI domains
 - File uploads validated by MIME type and size (max 50 MB per file)
 - Admin routes protected by `requireAdmin` middleware checking `role: "admin"`
 - Razorpay webhook signature verified with HMAC-SHA256 before processing
@@ -716,7 +716,7 @@ npx cap open android
 
 ### Folder Structure in Cloudinary:
 ```
-kolomflow/
+waveword-ai/
   users/
     {userId}/
       studio/
@@ -994,11 +994,11 @@ GET    /admin-logs            → View admin action log
 | v1.2 | Full dark mode across all pages |
 | v1.3 | AI learns handwriting style from user's own photo sample |
 | v1.3 | Collaborative Project Builder — share and co-edit with teammates |
-| v2.0 | KolomFlow REST API for third-party developers |
+| v2.0 | Waveword AI REST API for third-party developers |
 | v2.0 | Resume and CV Builder tool |
 | v2.1 | AI writing assistant integrated into Studio |
 | v2.2 | WhatsApp / Telegram bot for PDF tools |
-| v3.0 | KolomFlow Marketplace — sell custom handwriting styles and PPT themes |
+| v3.0 | Waveword AI Marketplace — sell custom handwriting styles and PPT themes |
 
 ---
 
@@ -1010,7 +1010,7 @@ GET    /admin-logs            → View admin action log
 # Server
 PORT=5000
 NODE_ENV=production
-CLIENT_URL=https://kolomflow.app
+CLIENT_URL=https://waveword-ai.app
 
 # MongoDB
 MONGO_URI=mongodb+srv://...
@@ -1052,7 +1052,7 @@ REDIS_URL=redis://localhost:6379
 ### Appendix B — Project Folder Structure
 
 ```
-kolomflow/
+waveword-ai/
 ├── client/                         # Vite + React + Tailwind CSS
 │   ├── public/
 │   ├── src/
@@ -1120,4 +1120,4 @@ kolomflow/
 
 ---
 
-*KolomFlow PRD v1.0.0 — Confidential Internal Document — May 2026*
+*Waveword AI PRD v1.0.0 — Confidential Internal Document — May 2026*

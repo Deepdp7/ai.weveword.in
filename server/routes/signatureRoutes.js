@@ -1,8 +1,9 @@
 import express from 'express';
 import * as pdfController from '../controllers/pdfController.js'; // I'll add signature methods to a new controller or use this
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, checkCredits } from '../middleware/authMiddleware.js';
 import FileModel from '../models/File.js';
 import cloudinary from '../config/cloudinary.js';
+import { deductCredits } from '../utils/creditManager.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // Save a new signature
-router.post('/save', async (req, res) => {
+router.post('/save', checkCredits(5), async (req, res) => {
   try {
     const { signatureData, fileName } = req.body; // base64 data
 
@@ -33,7 +34,7 @@ router.post('/save', async (req, res) => {
 
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(signatureData, {
-      folder: `kolomflow/users/${req.user._id}/signatures`,
+      folder: `waveword-ai/users/${req.user._id}/signatures`,
       resource_type: 'image'
     });
 
@@ -45,6 +46,8 @@ router.post('/save', async (req, res) => {
       fileType: 'png',
       size: result.bytes
     });
+
+    await deductCredits(req.user._id, 5, 'signature', 'Saved a new signature');
 
     res.status(201).json({ status: 'success', signature: newSignature });
   } catch (error) {

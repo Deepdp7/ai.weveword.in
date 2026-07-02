@@ -12,8 +12,8 @@ export const CreditProvider = ({ children }) => {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const savedCredits = localStorage.getItem('kolomflow_credits');
-    const savedTransactions = localStorage.getItem('kolomflow_transactions');
+    const savedCredits = localStorage.getItem('waveword-ai_credits');
+    const savedTransactions = localStorage.getItem('waveword-ai_transactions');
     
     if (savedCredits !== null) {
       setCredits(parseInt(savedCredits, 10));
@@ -25,8 +25,8 @@ export const CreditProvider = ({ children }) => {
 
   // Save to localStorage whenever credits or transactions change
   useEffect(() => {
-    localStorage.setItem('kolomflow_credits', credits.toString());
-    localStorage.setItem('kolomflow_transactions', JSON.stringify(transactions));
+    localStorage.setItem('waveword-ai_credits', credits.toString());
+    localStorage.setItem('waveword-ai_transactions', JSON.stringify(transactions));
   }, [credits, transactions]);
 
   const addCredits = (amount, reason) => {

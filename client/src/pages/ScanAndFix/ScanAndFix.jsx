@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight, Cloud } from 'lucide-react';
+import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight, Cloud, Zap } from 'lucide-react';
 import axios from 'axios';
 
-const API = 'http://localhost:5000/api/scan-fix';
+const API = `http://${window.location.hostname}:5000/api/scan-fix`;
 axios.defaults.withCredentials = true;
 
 export default function ScanAndFix() {
@@ -68,7 +68,13 @@ export default function ScanAndFix() {
             <Scan className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Scan & Fix AI</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Scan & Fix AI</h1>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-xl shadow-md">
+                <Zap size={14} className="text-yellow-400 fill-current" />
+                <span className="text-[10px] font-black tracking-tight uppercase">Cost: 5 Credits</span>
+              </div>
+            </div>
             <p className="text-gray-500 font-medium">Real-time AI photo restoration for your documents.</p>
           </div>
         </div>

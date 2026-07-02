@@ -31,7 +31,7 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 
   const info = await transporter.sendMail({
-    from: `"KolomFlow" <${process.env.SMTP_USER}>`,
+    from: `"Waveword AI" <${process.env.SMTP_USER}>`,
     to,
     subject,
     html,
@@ -71,7 +71,7 @@ export const sendOTPEmail = async (email, otp, purpose = 'forgot_password') => {
   <body>
     <div class="container">
       <div class="header">
-        <h1>✦ KolomFlow</h1>
+        <h1>✦ Waveword AI</h1>
         <p>${title}</p>
       </div>
       <div class="body">
@@ -83,7 +83,7 @@ export const sendOTPEmail = async (email, otp, purpose = 'forgot_password') => {
         <p>If you didn't request this, please ignore this email. Your account remains safe.</p>
       </div>
       <div class="footer">
-        <p>© ${new Date().getFullYear()} KolomFlow. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} Waveword AI. All rights reserved.</p>
         <p style="margin-top: 6px;">This is an automated email. Please do not reply.</p>
       </div>
     </div>
@@ -91,7 +91,7 @@ export const sendOTPEmail = async (email, otp, purpose = 'forgot_password') => {
   </html>
   `;
 
-  await sendEmail({ to: email, subject: `Your KolomFlow OTP: ${otp}`, html });
+  await sendEmail({ to: email, subject: `Your Waveword AI OTP: ${otp}`, html });
 };
 
 // ── Welcome Email Template ──────────────────────────────────────────────────────
@@ -118,11 +118,11 @@ export const sendWelcomeEmail = async (email, name) => {
   <body>
     <div class="container">
       <div class="header">
-        <h1>✦ Welcome to KolomFlow!</h1>
+        <h1>✦ Welcome to Waveword AI!</h1>
       </div>
       <div class="body">
         <p>Hey ${name} 👋,</p>
-        <p>We're thrilled to have you on board! Your account has been created successfully. Here's what you can do with KolomFlow:</p>
+        <p>We're thrilled to have you on board! Your account has been created successfully. Here's what you can do with Waveword AI:</p>
         <div class="feature"><span class="feature-icon">✍️</span> <span><strong>Studio</strong> — Turn handwriting photos into clean digital text</span></div>
         <div class="feature"><span class="feature-icon">🖊️</span> <span><strong>Signature Generator</strong> — Create professional digital signatures</span></div>
         <div class="feature"><span class="feature-icon">🎬</span> <span><strong>Writing Animator</strong> — Animate your handwriting into a video</span></div>
@@ -131,12 +131,12 @@ export const sendWelcomeEmail = async (email, name) => {
         <a href="${process.env.CLIENT_URL || 'http://localhost:5174'}" class="cta">Start Creating →</a>
       </div>
       <div class="footer">
-        <p>© ${new Date().getFullYear()} KolomFlow. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} Waveword AI. All rights reserved.</p>
       </div>
     </div>
   </body>
   </html>
   `;
 
-  await sendEmail({ to: email, subject: `Welcome to KolomFlow, ${name}! 🎉`, html });
+  await sendEmail({ to: email, subject: `Welcome to Waveword AI, ${name}! 🎉`, html });
 };

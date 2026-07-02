@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Transaction from '../models/Transaction.js';
 import Payment from '../models/Payment.js';
 import FileModel from '../models/File.js';
+import AdminTask from '../models/AdminTask.js';
 
 // @desc    Get admin dashboard statistics
 // @route   GET /api/admin/stats
@@ -19,6 +20,7 @@ export const getDashboardStats = async (req, res) => {
       capturedPayments,
       totalFiles,
       totalTransactions,
+      totalToolUses,
       planBreakdown,
       recentUsers,
       recentPayments,
@@ -29,6 +31,7 @@ export const getDashboardStats = async (req, res) => {
       Payment.find({ status: 'captured' }),
       FileModel.countDocuments({ isDeleted: false }),
       Transaction.countDocuments(),
+      Transaction.countDocuments({ type: 'tool_usage' }),
 
       // Group users by plan
       User.aggregate([
@@ -54,6 +57,11 @@ export const getDashboardStats = async (req, res) => {
       .reduce((sum, p) => sum + p.amount, 0);
     const monthRevenue = (monthRevenuePaise / 100).toFixed(2);
 
+    const weekRevenuePaise = capturedPayments
+      .filter(p => p.createdAt >= sevenDaysAgo)
+      .reduce((sum, p) => sum + p.amount, 0);
+    const weeklyRevenue = (weekRevenuePaise / 100).toFixed(2);
+
     // Total credits sold
     const creditsSold = capturedPayments.reduce((sum, p) => sum + p.credits, 0);
 
@@ -65,9 +73,11 @@ export const getDashboardStats = async (req, res) => {
         newUsersThisWeek,
         totalRevenue,
         monthRevenue,
+        weeklyRevenue,
         creditsSold,
         totalFiles,
         totalTransactions,
+        totalToolUses,
         planBreakdown,
         recentUsers,
         recentPayments,
@@ -179,6 +189,14 @@ export const updateUserPlan = async (req, res) => {
       });
     }
 
+    // Log admin task
+    await AdminTask.create({
+      adminId: req.user._id,
+      action: 'UPDATE_PLAN',
+      targetUserId: user._id,
+      details: `Updated plan to ${plan}${creditsBonus > 0 ? ` and granted ${creditsBonus} bonus credits` : ''}`
+    });
+
     res.status(200).json({
       status: 'success',
       message: `User plan updated to "${plan}".`,
@@ -235,5 +253,66 @@ export const getAllTransactions = async (req, res) => {
   } catch (error) {
     console.error('Get transactions error:', error);
     res.status(500).json({ status: 'error', message: 'Could not fetch transactions.' });
+  }
+};
+
+// @desc    Update user role (admin only)
+// @route   PATCH /api/admin/users/:id/role
+// @access  Admin only
+export const updateUserRole = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ status: 'error', message: 'Cannot modify your own role.' });
+    }
+
+    user.role = user.role === 'admin' ? 'user' : 'admin';
+    await user.save();
+
+    await AdminTask.create({
+      adminId: req.user._id,
+      action: user.role === 'admin' ? 'PROMOTED_ADMIN' : 'DEMOTED_ADMIN',
+      targetUserId: user._id,
+      details: `Changed role to ${user.role}`
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: `User role updated to ${user.role}.`,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error('Update role error:', error);
+    res.status(500).json({ status: 'error', message: 'Could not update user role.' });
+  }
+};
+
+// @desc    Get admin task history
+// @route   GET /api/admin/tasks
+// @access  Admin only
+export const getAdminTasks = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const [tasks, total] = await Promise.all([
+      AdminTask.find()
+        .populate('adminId', 'name email')
+        .populate('targetUserId', 'name email')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      AdminTask.countDocuments(),
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      tasks,
+      pagination: { total, page, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error('Get tasks error:', error);
+    res.status(500).json({ status: 'error', message: 'Could not fetch admin tasks.' });
   }
 };

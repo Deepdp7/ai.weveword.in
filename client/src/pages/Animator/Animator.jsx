@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Download, Video, Music, Settings, Type, Loader2, Sparkles, CheckCircle2, Palette, Smartphone, Cloud } from 'lucide-react';
+import { Play, Pause, Download, Video, Music, Settings, Type, Loader2, Sparkles, CheckCircle2, Palette, Smartphone, Cloud, Zap } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `http://${window.location.hostname}:5000/api`;
 const API = `${API_BASE}/animator`;
 axios.defaults.withCredentials = true;
 
@@ -57,7 +57,7 @@ const CustomSlider = ({ label, value, setValue, theme = "purple", min = 0, max =
 };
 
 export default function Animator() {
-  const [script, setScript] = useState("Hello KolomFlow!\n\nThis is a real Writing Animator.\nIt renders your text into an MP4 video!");
+  const [script, setScript] = useState("Hello Waveword AI!\n\nThis is a real Writing Animator.\nIt renders your text into an MP4 video!");
   const [bg, setBg] = useState(BACKGROUNDS[0]);
   const [format, setFormat] = useState(FORMATS[0]);
   const [fontFamily, setFontFamily] = useState(FONTS[0]);
@@ -224,7 +224,7 @@ export default function Animator() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'kolomflow-animation.webm';
+        a.download = 'waveword-ai-animation.webm';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -270,7 +270,13 @@ export default function Animator() {
             <Video className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">Writing Animator</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">Writing Animator</h1>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-xl shadow-md">
+                <Zap size={14} className="text-yellow-400 fill-current" />
+                <span className="text-[10px] font-black tracking-tight uppercase">Cost: 15 Credits</span>
+              </div>
+            </div>
             <p className="text-gray-500 font-medium tracking-tight">Pro-grade handwriting video generator for social media.</p>
           </div>
         </div>

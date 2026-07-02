@@ -6,6 +6,7 @@ import mammoth from 'mammoth';
 import fs from 'fs';
 import { createCanvas, registerFont } from 'canvas';
 import path from 'path';
+import { deductCredits } from '../utils/creditManager.js';
 
 // Server Page Dimensions at 150 DPI
 const SERVER_PAGE_DIMENSIONS = {
@@ -310,8 +311,11 @@ export const exportPdf = async (req, res) => {
     // Combine into PDF
     const pdfBuffer = await pdfService.imagesToPdf(pageBuffers, true); // Added true for 'buffers' mode
 
+    // Deduct Credits
+    await deductCredits(req.user._id, 10, 'studio', 'Exported Handwriting to PDF');
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=KolomFlow_Export.pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=Waveword AI_Export.pdf');
     res.send(pdfBuffer);
 
   } catch (error) {
@@ -370,7 +374,7 @@ export const exportProject = async (req, res) => {
     const dataUri = `data:application/pdf;base64,${base64Data}`;
 
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: `kolomflow/users/${req.user._id}/projects`,
+      folder: `waveword-ai/users/${req.user._id}/projects`,
       resource_type: 'image',
       type: 'upload',
       access_mode: 'public'
@@ -440,6 +444,9 @@ export const extractText = async (req, res) => {
 
     // Clean up temp file
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    // Deduct Credits
+    await deductCredits(req.user._id, 10, 'studio', 'Extracted text from document');
 
     res.status(200).json({ status: 'success', text: extractedText });
   } catch (error) {

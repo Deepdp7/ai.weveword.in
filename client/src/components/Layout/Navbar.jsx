@@ -1,14 +1,30 @@
 import { Bell, Search, Menu, User, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useCredits } from '../../context/CreditContext';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export default function Navbar() {
-  const { credits } = useCredits();
+export default function Navbar({ onMenuClick }) {
+  const [credits, setCredits] = useState('...');
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const { data } = await axios.get(`http://${window.location.hostname}:5000/api/payments/credits/balance`, { withCredentials: true });
+        setCredits(data.credits);
+      } catch (err) {
+        console.error('Failed to fetch credits', err);
+      }
+    };
+    fetchCredits();
+  }, []);
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shadow-sm z-10 sticky top-0">
       <div className="flex items-center gap-4">
-        <button className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+        <button 
+          onClick={onMenuClick}
+          className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+        >
           <Menu className="w-6 h-6" />
         </button>
         <div className="hidden sm:flex relative items-center">
@@ -22,7 +38,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-5">
-        <Link to="/wallet" className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full hover:bg-amber-100 transition-colors cursor-pointer border border-amber-200">
+        <Link to="/credits" className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full hover:bg-amber-100 transition-colors cursor-pointer border border-amber-200">
           <Wallet className="w-4 h-4" />
           <span className="text-sm font-semibold">{credits} Credits</span>
         </Link>

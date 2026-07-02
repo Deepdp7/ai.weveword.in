@@ -74,6 +74,12 @@ export const loginUser = async (req, res) => {
         return res.status(403).json({ status: 'error', message: 'Account is banned. Contact support.' });
       }
 
+      // Auto-promote admin based on .env
+      if (user.email === process.env.ADMIN_EMAIL && user.role !== 'admin') {
+        user.role = 'admin';
+        // Need to save before generating token so the user object returned has the right role
+      }
+
       user.lastLoginAt = new Date();
       await user.save();
 

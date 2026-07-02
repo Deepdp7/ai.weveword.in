@@ -10,7 +10,7 @@ import MergePDF from './pages/PDFTools/MergePDF';
 import GenericConverter from './pages/PDFTools/GenericConverter';
 import ImagesToPDF from './pages/PDFTools/ImagesToPDF';
 import Studio from './pages/Studio/Studio';
-import Wallet from './pages/Wallet/Wallet';
+
 import ScanAndFix from './pages/ScanAndFix/ScanAndFix';
 import Signature from './pages/Signature/Signature';
 import Animator from './pages/Animator/Animator';
@@ -20,9 +20,17 @@ import PPTMaker from './pages/PPTMaker/PPTMaker';
 import Profile from './pages/Profile/Profile';
 import Dashboard from './pages/Admin/Dashboard';
 import UserManagement from './pages/Admin/UserManagement';
+import TaskHistory from './pages/Admin/TaskHistory';
 import CreditShop from './pages/CreditShop/CreditShop';
 import { useAuth } from './context/AuthContext';
 
+const AdminRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/" />;
+  }
+  return children;
+};
 function App() {
   const { user, loading } = useAuth();
 
@@ -51,8 +59,6 @@ function App() {
           {/* Writing Animator */}
           <Route path="animator" element={<Animator />} />
 
-          {/* Wallet */}
-          <Route path="wallet" element={<Wallet />} />
 
           {/* Studio Tools */}
           <Route path="studio" element={<Studio />} />
@@ -71,8 +77,9 @@ function App() {
           <Route path="profile" element={<Profile />} />
 
           {/* Admin */}
-          <Route path="admin" element={<Dashboard />} />
-          <Route path="admin/users" element={<UserManagement />} />
+          <Route path="admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+          <Route path="admin/tasks" element={<AdminRoute><TaskHistory /></AdminRoute>} />
 
           {/* Credit Shop */}
           <Route path="credits" element={<CreditShop />} />

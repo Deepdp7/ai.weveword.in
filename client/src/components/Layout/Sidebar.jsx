@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, PenTool, LayoutTemplate, FileText, Image as ImageIcon, Video, FileSignature, Folder, Presentation, User, LogOut, ShieldCheck, Coins } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -10,6 +10,10 @@ export default function Sidebar() {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleNavClick = () => {
+    if (onClose) onClose();
   };
 
   const navItems = [
@@ -26,13 +30,19 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col shadow-sm z-10">
+    <aside 
+      className={`
+        fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 shadow-xl md:shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}
+    >
       <div className="h-16 flex items-center px-6 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
             <PenTool className="text-white w-5 h-5" />
           </div>
-          <span className="text-xl font-bold text-gray-900 tracking-tight">KolomFlow</span>
+          <span className="text-xl font-bold text-gray-900 tracking-tight">Waveword AI</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto py-4">
@@ -44,6 +54,7 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 to={item.path}
+                onClick={handleNavClick}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                   isActive 
                     ? 'bg-brand-50 text-brand-600 font-medium' 

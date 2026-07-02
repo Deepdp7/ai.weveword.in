@@ -4,7 +4,7 @@ import {
   Columns, Cloud, ChevronLeft, ChevronRight, Trash2, X, Sparkles,
   ChevronUp, ChevronDown, Copy, RotateCcw, AlignLeft, AlignCenter,
   AlignRight, Bold, Italic, Underline, Strikethrough, FileText,
-  Grid, ArrowLeft
+  Grid, ArrowLeft, Zap
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useToast } from '../../components/toastStore';
@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
 
-const API = 'http://localhost:5000/api';
+const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
 /* ─────────────────────── TEMPLATE DATA ─────────────────────── */
@@ -69,7 +69,7 @@ const TEMPLATE_CATEGORIES = [
         accent: '#1f2937', bg: '#f3f4f6', text: '#111827',
         preview: { type: 'portfolio' },
         slides: [
-          { id: 'pf1', type: 'Title', title: 'CREATIVE PORTFOLIO', subtitle: 'Showcasing premium mobile & web apps', content: 'Designed by KolomFlow Studio', contentLeft: '', contentRight: '', animation: 'none', formatting: {} },
+          { id: 'pf1', type: 'Title', title: 'CREATIVE PORTFOLIO', subtitle: 'Showcasing premium mobile & web apps', content: 'Designed by Waveword AI Studio', contentLeft: '', contentRight: '', animation: 'none', formatting: {} },
           { id: 'pf2', type: 'Split', title: 'Selected Works', subtitle: 'Mobile & Web Solutions', content: '', contentLeft: 'Web Application\nFullstack React platforms with responsive dashboards.', contentRight: 'Mobile Platforms\nCapacitor & Native iOS/Android builds.', animation: 'none', formatting: {} }
         ]
       },
@@ -148,7 +148,7 @@ const TEMPLATE_CATEGORIES = [
         accent: '#1f2937', bg: '#f3f4f6', text: '#111827',
         preview: { type: 'portfolio' },
         slides: [
-          { id: 'pf1', type: 'Title', title: 'CREATIVE PORTFOLIO', subtitle: 'Showcasing premium mobile & web apps', content: 'Designed by KolomFlow Studio', contentLeft: '', contentRight: '', animation: 'none', formatting: {} }
+          { id: 'pf1', type: 'Title', title: 'CREATIVE PORTFOLIO', subtitle: 'Showcasing premium mobile & web apps', content: 'Designed by Waveword AI Studio', contentLeft: '', contentRight: '', animation: 'none', formatting: {} }
         ]
       },
       {
@@ -488,12 +488,12 @@ export default function PPTMaker() {
   const [showGallery, setShowGallery] = useState(false);
 
   const [slides, setSlides] = useState(() => {
-    const saved = localStorage.getItem('kolomflow_ppt_slides');
+    const saved = localStorage.getItem('waveword-ai_ppt_slides');
     return saved ? JSON.parse(saved) : [
       {
         id: 'default-1',
         type: 'Title',
-        title: 'KOLOMFLOW PRESENTATION',
+        title: 'WAVEWORD AI PRESENTATION',
         subtitle: 'Build stunning presentations instantly',
         content: 'Click anywhere to edit or apply a template from the right panel.',
         contentLeft: '',
@@ -505,12 +505,12 @@ export default function PPTMaker() {
   });
 
   const [activeSlideId, setActiveSlideId] = useState(() => slides[0]?.id || 'default-1');
-  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('kolomflow_ppt_accent') || '#0284c7');
-  const [bgColor, setBgColor] = useState(() => localStorage.getItem('kolomflow_ppt_bg') || '#f8fafc');
-  const [textColor, setTextColor] = useState(() => localStorage.getItem('kolomflow_ppt_text') || '#0f172a');
-  const [bgGradient, setBgGradient] = useState(() => localStorage.getItem('kolomflow_ppt_gradient') || 'none');
-  const [aspectRatio, setAspectRatio] = useState(() => localStorage.getItem('kolomflow_ppt_aspect') || '16/10');
-  const [transition, setTransition] = useState(() => localStorage.getItem('kolomflow_ppt_transition') || 'fade');
+  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('waveword-ai_ppt_accent') || '#0284c7');
+  const [bgColor, setBgColor] = useState(() => localStorage.getItem('waveword-ai_ppt_bg') || '#f8fafc');
+  const [textColor, setTextColor] = useState(() => localStorage.getItem('waveword-ai_ppt_text') || '#0f172a');
+  const [bgGradient, setBgGradient] = useState(() => localStorage.getItem('waveword-ai_ppt_gradient') || 'none');
+  const [aspectRatio, setAspectRatio] = useState(() => localStorage.getItem('waveword-ai_ppt_aspect') || '16/10');
+  const [transition, setTransition] = useState(() => localStorage.getItem('waveword-ai_ppt_transition') || 'fade');
 
   const [activeRibbonTab, setActiveRibbonTab] = useState('home');
   const [selectedField, setSelectedField] = useState('title');
@@ -535,13 +535,13 @@ export default function PPTMaker() {
 
   /* ── Auto-save ── */
   useEffect(() => {
-    localStorage.setItem('kolomflow_ppt_slides', JSON.stringify(slides));
-    localStorage.setItem('kolomflow_ppt_accent', accentColor);
-    localStorage.setItem('kolomflow_ppt_bg', bgColor);
-    localStorage.setItem('kolomflow_ppt_text', textColor);
-    localStorage.setItem('kolomflow_ppt_gradient', bgGradient);
-    localStorage.setItem('kolomflow_ppt_aspect', aspectRatio);
-    localStorage.setItem('kolomflow_ppt_transition', transition);
+    localStorage.setItem('waveword-ai_ppt_slides', JSON.stringify(slides));
+    localStorage.setItem('waveword-ai_ppt_accent', accentColor);
+    localStorage.setItem('waveword-ai_ppt_bg', bgColor);
+    localStorage.setItem('waveword-ai_ppt_text', textColor);
+    localStorage.setItem('waveword-ai_ppt_gradient', bgGradient);
+    localStorage.setItem('waveword-ai_ppt_aspect', aspectRatio);
+    localStorage.setItem('waveword-ai_ppt_transition', transition);
   }, [slides, accentColor, bgColor, textColor, bgGradient, aspectRatio, transition]);
 
   /* ── Keyboard navigation in present mode ── */
@@ -772,20 +772,28 @@ export default function PPTMaker() {
     return pdf;
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setIsGenerating(true);
-    addToast('Generating PDF...', 'loading');
+    addToast('Verifying credits...', 'loading');
     try {
+      await axios.post(`${API}/payments/credits/deduct`, { toolKey: 'ppt' });
+      addToast('Generating PDF...', 'loading');
       buildPDF().save('Presentation.pdf');
       clearToasts(); addToast('Downloaded!', 'success'); triggerConfetti();
-    } catch (e) { clearToasts(); addToast('Export failed.', 'error'); }
+    } catch (e) { 
+      clearToasts(); 
+      addToast(e.response?.data?.message || 'Export failed.', 'error'); 
+    }
     finally { setIsGenerating(false); }
   };
 
   const handleDownloadPPTX = async () => {
     setIsGenerating(true);
-    addToast('Preparing PowerPoint...', 'loading');
+    addToast('Verifying credits...', 'loading');
     try {
+      await axios.post(`${API}/payments/credits/deduct`, { toolKey: 'ppt' });
+      addToast('Preparing PowerPoint...', 'loading');
+      
       let pptxgen = window.pptxgen || window.PptxGenJS;
       if (!pptxgen) {
         await new Promise((resolve, reject) => {
@@ -1014,15 +1022,20 @@ export default function PPTMaker() {
 
   const handleSaveCloud = async () => {
     setIsSavingCloud(true);
-    addToast('Saving to cloud...', 'loading');
+    addToast('Verifying credits...', 'loading');
     try {
+      await axios.post(`${API}/payments/credits/deduct`, { toolKey: 'ppt' });
+      addToast('Saving to cloud...', 'loading');
       const blob = buildPDF().output('blob');
       const fd = new FormData();
       fd.append('file', new File([blob], `Presentation_${Date.now()}.pdf`, { type: 'application/pdf' }));
       fd.append('toolSource', 'ppt');
       await axios.post(`${API}/files/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       clearToasts(); addToast('Saved to Cloud!', 'success'); triggerConfetti();
-    } catch (e) { clearToasts(); addToast('Save failed.', 'error'); }
+    } catch (e) { 
+      clearToasts(); 
+      addToast(e.response?.data?.message || 'Save failed.', 'error'); 
+    }
     finally { setIsSavingCloud(false); }
   };
 
@@ -1182,6 +1195,10 @@ export default function PPTMaker() {
             <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               PowerSlide <span className="text-brand-600">Studio</span>
               <span className="text-[9px] font-black tracking-widest uppercase px-2 py-0.5 bg-brand-50 text-brand-600 rounded-full border border-brand-100">PRO</span>
+              <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-600 rounded-full border border-yellow-100 shadow-sm ml-2">
+                <Zap size={10} className="fill-current" />
+                <span className="text-[10px] font-black tracking-tight uppercase">Cost: 20 Credits</span>
+              </div>
             </h1>
             <p className="text-slate-500 text-xs font-semibold mt-0.5">Hybrid of PowerPoint + Google Slides</p>
           </div>
@@ -1233,7 +1250,7 @@ export default function PPTMaker() {
 
       {/* ── Ribbon ── */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mb-4 overflow-hidden shrink-0">
-        <div className="flex bg-slate-50 border-b border-slate-200 px-4">
+        <div className="flex bg-slate-50 border-b border-slate-200 px-4 overflow-x-auto whitespace-nowrap custom-scrollbar">
           {[
             { id: 'home', label: 'Home (Font)' },
             { id: 'design', label: 'Design (Theme)' },
@@ -1385,20 +1402,20 @@ export default function PPTMaker() {
       </div>
 
       {/* ── Main workspace ── */}
-      <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 overflow-y-auto lg:overflow-hidden min-h-0 custom-scrollbar">
 
         {/* Left: Slide Panel */}
-        <div className="w-48 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col shrink-0 overflow-hidden">
+        <div className="w-full lg:w-48 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col shrink-0 lg:overflow-hidden h-[200px] lg:h-auto">
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 shrink-0">
             <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Slides ({slides.length})</span>
             <button onClick={() => addSlide('Content')} className="p-1 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors border border-brand-100" title="Add Slide">
               <Plus size={16} />
             </button>
           </div>
-          <div className="flex flex-col gap-2 overflow-y-auto flex-1 p-2">
+          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto flex-1 p-2 custom-scrollbar">
             {slides.map((slide, idx) => (
               <div key={slide.id} onClick={() => setActiveSlideId(slide.id)}
-                className={`relative group cursor-pointer rounded-xl transition-all ${activeSlideId === slide.id ? 'ring-2 ring-brand-500' : 'hover:bg-slate-50'}`}>
+                className={`relative group cursor-pointer rounded-xl transition-all min-w-[140px] lg:min-w-0 ${activeSlideId === slide.id ? 'ring-2 ring-brand-500' : 'hover:bg-slate-50'}`}>
                 <div className="w-full aspect-[16/10] rounded-xl flex flex-col p-2 relative justify-center overflow-hidden border border-slate-200/60"
                   style={{ backgroundColor: bgColor, backgroundImage: bgGradient !== 'none' ? bgGradient : 'none' }}>
                   <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: accentColor }} />
@@ -1418,7 +1435,7 @@ export default function PPTMaker() {
         </div>
 
         {/* Center: Canvas */}
-        <div className="flex-1 bg-slate-200/50 rounded-3xl border border-slate-100 shadow-inner flex flex-col p-4 overflow-hidden">
+        <div className="flex-1 bg-slate-200/50 rounded-3xl border border-slate-100 shadow-inner flex flex-col p-2 sm:p-4 overflow-hidden min-h-[400px]">
           {/* Layout bar */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-slate-100 p-2 mb-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -1469,7 +1486,7 @@ export default function PPTMaker() {
         </div>
 
         {/* Right: Templates quick panel */}
-        <div className="w-64 bg-white rounded-3xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 shrink-0 overflow-y-auto">
+        <div className="w-full lg:w-64 bg-white rounded-3xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 shrink-0 lg:overflow-y-auto">
           <div>
             <h3 className="text-xs font-black text-slate-400 flex items-center gap-1.5 uppercase tracking-widest mb-3">
               <Sparkles size={13} className="text-brand-500" /> Quick Templates

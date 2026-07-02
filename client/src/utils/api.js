@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const getApiBase = () => {
-  const savedUrl = localStorage.getItem('kolomflow_api_url');
+  const savedUrl = localStorage.getItem('waveword-ai_api_url');
   if (savedUrl) return savedUrl;
 
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`;
 };
 
 export const API_BASE = getApiBase();
@@ -21,9 +21,9 @@ axios.defaults.withCredentials = true;
 
 export const setCustomApiUrl = (url) => {
   if (!url) {
-    localStorage.removeItem('kolomflow_api_url');
+    localStorage.removeItem('waveword-ai_api_url');
   } else {
-    localStorage.setItem('kolomflow_api_url', url);
+    localStorage.setItem('waveword-ai_api_url', url);
   }
   window.location.reload();
 };
