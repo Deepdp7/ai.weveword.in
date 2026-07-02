@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import { useAuth } from './context/AuthContext';
+import { MessageCircle } from 'lucide-react';
 
 // Lazy load components for performance
 const Home = lazy(() => import('./pages/Home'));
@@ -52,6 +53,18 @@ const ProtectedRoute = ({ children }) => {
   }
   return children;
 };
+
+const WhatsAppButton = () => (
+  <a
+    href="https://wa.me/917980975812"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl hover:shadow-green-500/40 hover:-translate-y-1 transition-all z-50 flex items-center justify-center group"
+    title="Connect on WhatsApp"
+  >
+    <MessageCircle className="w-7 h-7 group-hover:scale-110 transition-transform fill-current" />
+  </a>
+);
 
 function App() {
   const { user, loading } = useAuth();
@@ -120,6 +133,7 @@ function App() {
           </Route>
         </Routes>
       </Suspense>
+      <WhatsAppButton />
     </BrowserRouter>
   );
 }
