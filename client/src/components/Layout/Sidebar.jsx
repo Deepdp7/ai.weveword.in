@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, PenTool, LayoutTemplate, FileText, Image as ImageIcon, Scissors, Crop, Video, FileSignature, Folder, Presentation, User, LogOut, ShieldCheck, Coins } from 'lucide-react';
+import { Home, PenTool, LayoutTemplate, FileText, Image as ImageIcon, Scissors, Crop, Video, FileSignature, Folder, Presentation, User, LogOut, ShieldCheck, Coins, Brain, Sparkles, Minimize, Wand2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -19,15 +19,17 @@ export default function Sidebar({ isOpen, onClose }) {
   const navItems = [
     { name: 'Dashboard', path: '/', icon: Home },
     { name: 'Cloud Library', path: '/library', icon: Folder },
+    { name: 'AI Mentors', path: '/mentors', icon: Brain },
     { name: 'Studio', path: '/studio', icon: PenTool },
     { name: 'Project Builder', path: '/project-builder', icon: LayoutTemplate },
     { name: 'PPT Maker', path: '/ppt-maker', icon: Presentation },
+    { name: 'Micro Note Maker', path: '/micro-notes', icon: Sparkles },
     { name: 'PDF Tools', path: '/pdf-tools', icon: FileText },
+    { name: 'BG Remover', path: '/bg-remover', icon: Scissors },
+    { name: 'Image Resizer', path: '/image-resizer', icon: Minimize },
     { name: 'Signature Generator', path: '/signature', icon: FileSignature },
     { name: 'Writing Animator', path: '/animator', icon: Video },
-    { name: 'Image Resizer', path: '/image-resizer', icon: Crop },
-    { name: 'BG Remover', path: '/bg-remover', icon: Scissors },
-    { name: 'Micro Note Maker', path: '/micro-notes', icon: FileText },
+    { name: 'Scan & Fix', path: '/scan-fix', icon: Wand2 },
     { name: 'Credits', path: '/credits', icon: Coins },
   ];
 

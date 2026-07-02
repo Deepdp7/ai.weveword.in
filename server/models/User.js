@@ -54,6 +54,12 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    aiDailyUsage: {
+      sahadev: { type: Number, default: 0 },
+      krishna: { type: Number, default: 0 },
+      vedbaash: { type: Number, default: 0 },
+      lastResetAt: { type: Date, default: Date.now }
+    },
     storageUsed: {
       type: Number, // in bytes
       default: 0

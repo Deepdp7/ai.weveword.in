@@ -16,6 +16,7 @@ import Animator from './pages/Animator/Animator';
 import BgRemover from './pages/BgRemover/BgRemover';
 import ImageResizer from './pages/ImageResizer/ImageResizer';
 import MicroNoteMaker from './pages/MicroNoteMaker/MicroNoteMaker';
+import AIMentors from './pages/AIMentors/AIMentors';
 import ProjectBuilder from './pages/ProjectBuilder/ProjectBuilder';
 import Library from './pages/Library/Library';
 import PPTMaker from './pages/PPTMaker/PPTMaker';
@@ -62,6 +63,9 @@ function App() {
           
           {/* Signature Generator */}
           <Route path="signature" element={<ProtectedRoute><Signature /></ProtectedRoute>} />
+
+          {/* AI Mentors */}
+          <Route path="mentors" element={<ProtectedRoute><AIMentors /></ProtectedRoute>} />
 
           {/* Micro Note Maker */}
           <Route path="micro-notes" element={<ProtectedRoute><MicroNoteMaker /></ProtectedRoute>} />

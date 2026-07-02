@@ -1,4 +1,4 @@
-import { ArrowRight, PenTool, Image as ImageIcon, Video, FileText, FileSignature, LayoutTemplate, Clock, Scissors } from 'lucide-react';
+import { ArrowRight, PenTool, Image as ImageIcon, Video, FileText, FileSignature, LayoutTemplate, Clock, Scissors, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,6 +6,7 @@ export default function Home() {
   const { user } = useAuth();
 
   const tools = [
+    { name: 'AI Mentors', desc: 'Learn with intelligent agents', icon: Brain, path: '/mentors', color: 'bg-emerald-500', bg: 'bg-emerald-50' },
     { name: 'Studio', desc: 'Create & edit documents', icon: PenTool, path: '/studio', color: 'bg-brand-500', bg: 'bg-brand-50' },
     { name: 'BG Remover', desc: 'Remove backgrounds instantly', icon: Scissors, path: '/bg-remover', color: 'bg-indigo-500', bg: 'bg-indigo-50' },
     { name: 'PDF Tools', desc: 'Merge, split & compress PDFs', icon: FileText, path: '/pdf-tools', color: 'bg-rose-500', bg: 'bg-rose-50' },

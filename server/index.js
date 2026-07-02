@@ -8,15 +8,16 @@ import connectDB from './config/db.js';
 // Route Imports
 import authRoutes from './routes/authRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import labRoutes from './routes/labRoutes.js';
+import scanRoutes from './routes/scanRoutes.js';
 import studioRoutes from './routes/studioRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import pdfRoutes from './routes/pdfRoutes.js';
 import signatureRoutes from './routes/signatureRoutes.js';
-import scanRoutes from './routes/scanRoutes.js';
 import animatorRoutes from './routes/animatorRoutes.js';
+import labRoutes from './routes/labRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -73,6 +74,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lab', labRoutes);
 app.use('/api/studio', studioRoutes);
+app.use('/api/ai', aiRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/signatures', signatureRoutes);
 app.use('/api/scan-fix', scanRoutes);
