@@ -23,6 +23,11 @@ export default function CreditShop() {
   const [buying, setBuying] = useState(null);
   const [error, setError] = useState('');
 
+  // Ad Player States
+  const [isAdPlaying, setIsAdPlaying] = useState(false);
+  const [adTimeLeft, setAdTimeLeft] = useState(15);
+  const [adRewardReady, setAdRewardReady] = useState(false);
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
@@ -93,13 +98,37 @@ export default function CreditShop() {
     }
   };
 
+  const startAd = () => {
+    setIsAdPlaying(true);
+    setAdTimeLeft(15);
+    setAdRewardReady(false);
+    
+    // We use a simple interval for the countdown
+    const timer = setInterval(() => {
+      setAdTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setAdRewardReady(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   const handleAdReward = async () => {
     try {
       const { data } = await axios.post(`${API}/payments/credits/ad-reward`, { adType: '30sec' });
       setBalance(b => ({ ...b, credits: data.newBalance }));
       alert(`🎉 +${data.creditsEarned} credits earned for watching an ad!`);
+      
+      // Refresh transactions
+      const txRes = await axios.get(`${API}/payments/transactions`);
+      setTransactions(txRes.data.transactions || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Could not award ad credits.');
+    } finally {
+      setIsAdPlaying(false);
     }
   };
 
@@ -169,7 +198,7 @@ export default function CreditShop() {
               </div>
             </div>
             <button
-              onClick={handleAdReward}
+              onClick={startAd}
               className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shrink-0"
             >
               Watch Ad (+5)
@@ -279,6 +308,73 @@ export default function CreditShop() {
           )}
         </div>
       )}
+
+      {/* ── Ad Player Modal ── */}
+      {isAdPlaying && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-300">
+          {/* Ad Header Overlay */}
+          <div className="absolute top-0 inset-x-0 p-4 sm:p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="bg-yellow-500 text-black font-bold text-xs px-2 py-1 rounded">SPONSORED</div>
+            
+            {adRewardReady ? (
+              <button 
+                onClick={handleAdReward}
+                className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 px-4 rounded-full flex items-center gap-2 animate-bounce"
+              >
+                Claim Reward & Close
+              </button>
+            ) : (
+              <div className="text-white font-mono font-semibold bg-black/50 px-3 py-1.5 rounded-full border border-white/20">
+                Reward in {adTimeLeft}s
+              </div>
+            )}
+          </div>
+          
+          {/* Close early button */}
+          {!adRewardReady && (
+            <button 
+              onClick={() => setIsAdPlaying(false)}
+              className="absolute top-4 sm:top-6 right-4 sm:right-6 text-white/50 hover:text-white z-10 p-2"
+              title="Close without reward"
+            >
+              ✕
+            </button>
+          )}
+
+          {/* Ad Video */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <video 
+              src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+              className="w-full h-full object-contain"
+              autoPlay
+              muted={false}
+              playsInline
+            />
+            {/* Click interceptor to open sponsor link instead of pausing */}
+            <a 
+              href="https://google.com" 
+              target="_blank" 
+              rel="noreferrer"
+              className="absolute inset-0 z-0 cursor-pointer"
+              title="Visit Sponsor"
+            >
+              <span className="sr-only">Visit Sponsor</span>
+            </a>
+          </div>
+          
+          {/* Ad Footer Overlay */}
+          <div className="absolute bottom-0 inset-x-0 p-6 sm:p-8 flex items-center justify-between z-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
+            <div>
+              <h2 className="text-white font-bold text-xl sm:text-2xl mb-1">Epic Action Game</h2>
+              <p className="text-white/80 text-sm">Download now and get 500 free gems!</p>
+            </div>
+            <button className="bg-blue-600 text-white font-bold py-2 px-6 rounded-full pointer-events-auto hover:bg-blue-500 transition-colors">
+              Install
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1042,7 +1042,12 @@ export default function PPTMaker() {
 
   /* ─────────────────────── SLIDE CANVAS RENDERER ─────────────────────── */
   const renderSlideContent = (slide, isPresenter = false) => {
-    const scale = isPresenter ? 1.3 : 1;
+    let baseScale = 1;
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 640) baseScale = 0.55;
+      else if (window.innerWidth < 1024) baseScale = 0.8;
+    }
+    const scale = isPresenter ? 1.3 : baseScale;
     if (!slide) return null;
 
     if (slide.type === 'Title') {
@@ -1413,17 +1418,17 @@ export default function PPTMaker() {
       <div className="flex-1 flex flex-col lg:flex-row gap-4 overflow-y-auto lg:overflow-hidden min-h-0 custom-scrollbar">
 
         {/* Left: Slide Panel */}
-        <div className="w-full lg:w-48 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col shrink-0 lg:overflow-hidden h-[200px] lg:h-auto">
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 shrink-0">
+        <div className="w-full lg:w-48 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col shrink-0 lg:overflow-hidden h-[160px] lg:h-auto">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 shrink-0">
             <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Slides ({slides.length})</span>
             <button onClick={() => addSlide('Content')} className="p-1 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors border border-brand-100" title="Add Slide">
               <Plus size={16} />
             </button>
           </div>
-          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto flex-1 p-2 custom-scrollbar">
+          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto flex-1 p-2 custom-scrollbar items-center lg:items-stretch">
             {slides.map((slide, idx) => (
               <div key={slide.id} onClick={() => setActiveSlideId(slide.id)}
-                className={`relative group cursor-pointer rounded-xl transition-all min-w-[140px] lg:min-w-0 ${activeSlideId === slide.id ? 'ring-2 ring-brand-500' : 'hover:bg-slate-50'}`}>
+                className={`relative group cursor-pointer rounded-xl transition-all min-w-[120px] lg:min-w-0 ${activeSlideId === slide.id ? 'ring-2 ring-brand-500' : 'hover:bg-slate-50'}`}>
                 <div className="w-full aspect-[16/10] rounded-xl flex flex-col p-2 relative justify-center overflow-hidden border border-slate-200/60"
                   style={{ backgroundColor: bgColor, backgroundImage: bgGradient !== 'none' ? bgGradient : 'none' }}>
                   <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: accentColor }} />

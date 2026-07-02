@@ -445,7 +445,7 @@ export default function Animator() {
 
         {/* Live Preview Monitor */}
         <div className="lg:col-span-8">
-          <div className="sticky top-8 bg-slate-900 rounded-[3rem] p-8 lg:p-12 flex flex-col items-center justify-center overflow-hidden h-[calc(100vh-4rem)] min-h-[600px] border-[12px] border-white shadow-2xl relative">
+          <div className="sticky top-8 bg-slate-900 rounded-3xl lg:rounded-[3rem] p-4 lg:p-12 flex flex-col items-center justify-center overflow-hidden h-[500px] lg:h-[calc(100vh-4rem)] min-h-[400px] lg:min-h-[600px] border-4 lg:border-[12px] border-white shadow-2xl relative">
             <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-white/60 text-[10px] font-black uppercase tracking-[0.2em] z-10">
               <div className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-rose-500 animate-pulse' : 'bg-slate-500'}`} />
               Monitor Output

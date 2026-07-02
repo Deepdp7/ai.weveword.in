@@ -59,13 +59,13 @@ export default function GenericConverter() {
   const Icon = config.icon;
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
+    <div className="max-w-4xl mx-auto py-6 sm:py-12 px-4">
       <button onClick={() => navigate('/pdf-tools')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 transition-colors">
         <ArrowLeft size={18} /> Back to Hub
       </button>
 
       <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-gray-100 flex items-center gap-4">
+        <div className="p-5 sm:p-8 border-b border-gray-100 flex items-center gap-4">
           <div className={`p-3 rounded-2xl bg-gray-50 ${config.color}`}>
             <Icon size={28} />
           </div>
@@ -75,7 +75,7 @@ export default function GenericConverter() {
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-5 sm:p-8">
           {!result ? (
             <div className="space-y-6">
               {!file ? (

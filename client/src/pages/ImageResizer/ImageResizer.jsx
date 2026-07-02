@@ -251,7 +251,7 @@ export default function ImageResizer() {
       {/* Header */}
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
             <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full flex items-center gap-1 border border-emerald-200">
               <Sparkles className="w-3.5 h-3.5" /> 100% Free Tool
             </span>
@@ -278,7 +278,7 @@ export default function ImageResizer() {
       {!originalImage ? (
         <div 
           {...getRootProps()} 
-          className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-16 text-center cursor-pointer transition-all duration-300 ease-in-out ${
+          className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-8 sm:p-16 text-center cursor-pointer transition-all duration-300 ease-in-out ${
             isDragActive ? 'border-indigo-500 bg-indigo-50/80 scale-[0.99]' : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50 hover:shadow-lg'
           }`}
         >

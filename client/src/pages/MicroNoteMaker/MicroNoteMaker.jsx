@@ -227,14 +227,15 @@ export default function MicroNoteMaker() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-auto bg-gray-200/80 p-8 custom-scrollbar relative">
+            <div className="flex-1 overflow-auto bg-gray-200/80 p-4 sm:p-8 custom-scrollbar relative flex justify-center">
               <textarea
                 ref={textareaRef}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Start typing your note here... Use the voice dictation button above, or drag and drop a document on the right to extract its text!"
-                className="bg-white shadow-md mx-auto text-gray-900 resize-none outline-none focus:ring-0 block"
+                className="bg-white shadow-md mx-auto text-gray-900 resize-none outline-none focus:ring-0 block shrink-0"
                 style={{ 
+                  zoom: typeof window !== 'undefined' && window.innerWidth < 640 ? 0.42 : typeof window !== 'undefined' && window.innerWidth < 1024 ? 0.7 : 1,
                   width: '210mm', 
                   minHeight: '297mm', 
                   padding: '10mm',

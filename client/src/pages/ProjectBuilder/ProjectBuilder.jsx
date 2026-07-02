@@ -370,8 +370,8 @@ export default function ProjectBuilder() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex justify-center">
-        <div className="inline-flex items-center p-1.5 bg-slate-100/80 border border-slate-200/50 rounded-full gap-1">
+      <div className="flex justify-center px-2">
+        <div className="flex flex-col sm:flex-row items-center p-1.5 bg-slate-100/80 border border-slate-200/50 rounded-2xl sm:rounded-full gap-1 w-full sm:w-auto overflow-x-auto">
           {[
             { id: 'settings', label: 'Settings', icon: Settings },
             { id: 'content', label: 'Write Content', icon: Edit3 },
@@ -381,11 +381,11 @@ export default function ProjectBuilder() {
               key={id}
               onClick={() => setActiveTab(id)}
               className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black tracking-widest uppercase transition-all duration-300',
+                'flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl sm:rounded-full text-xs font-black tracking-widest uppercase transition-all duration-300 w-full sm:w-auto',
                 activeTab === id ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               )}
             >
-              <Icon className="w-4 h-4" /> {label}
+              <Icon className="w-4 h-4 shrink-0" /> {label}
             </button>
           ))}
         </div>
@@ -434,7 +434,7 @@ export default function ProjectBuilder() {
                 </div>
 
                 {/* Layout & Color */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Theme Color</label>
                     <div className="flex flex-wrap gap-3">
@@ -484,7 +484,7 @@ export default function ProjectBuilder() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Project Title</label>
                     <div className="relative">
@@ -503,7 +503,7 @@ export default function ProjectBuilder() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Student Name</label>
                     <div className="relative">
@@ -522,7 +522,7 @@ export default function ProjectBuilder() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Teacher Name</label>
                     <input type="text" value={info.teacherName} onChange={(e) => setInfo({ ...info, teacherName: e.target.value })}
@@ -674,7 +674,7 @@ export default function ProjectBuilder() {
                   {/* Bottom: Student Details Box (Big Card style) */}
                   <div className="w-full overflow-hidden rounded-xl border-t-4 border-2 border-slate-100 shadow-md bg-slate-50/80" style={{ borderTopColor: accentColor }}>
                     <div className="px-5 py-4">
-                      <div className="grid grid-cols-2 gap-4 text-left">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-left">
                         <div>
                           <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Submitted By</p>
                           <p className="text-[13px] font-black text-slate-800">{info.studentName}</p>
@@ -694,9 +694,9 @@ export default function ProjectBuilder() {
             </div>
 
             {/* Index Page */}
-            <div className="flex justify-center">
-              <div
-                className="bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] w-full max-w-[480px] relative overflow-hidden flex flex-col pt-10 px-10 rounded-sm"
+              <div className="flex justify-center pt-8">
+                <div
+                  className="bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] w-full max-w-[480px] relative overflow-hidden flex flex-col pt-8 sm:pt-10 px-6 sm:px-10 rounded-sm"
                 style={{
                   aspectRatio: '210/297',
                   fontFamily: layout === 'classic' ? 'Times New Roman, serif' : layout === 'minimal' ? 'Courier New, monospace' : 'Helvetica, Arial, sans-serif',
@@ -724,9 +724,9 @@ export default function ProjectBuilder() {
 
             {/* Content Pages */}
             {pages.map((p, i) => (
-              <div key={p.id} className="flex justify-center">
+              <div key={p.id} className="flex justify-center pt-8">
                 <div
-                  className="bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] w-full max-w-[480px] flex flex-col pt-8 px-10 rounded-sm overflow-hidden"
+                  className="bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] w-full max-w-[480px] flex flex-col pt-6 sm:pt-8 px-6 sm:px-10 rounded-sm overflow-hidden"
                   style={{
                     aspectRatio: '210/297',
                     fontFamily: layout === 'classic' ? 'Times New Roman, serif' : layout === 'minimal' ? 'Courier New, monospace' : 'Helvetica, Arial, sans-serif',

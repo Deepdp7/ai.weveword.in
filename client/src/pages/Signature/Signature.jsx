@@ -109,25 +109,25 @@ export default function Signature() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Generator Card */}
-        <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[650px]">
-          <div className="p-4 border-b border-gray-100 bg-gray-50 flex gap-2">
+        <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[550px] sm:h-[650px]">
+          <div className="p-3 sm:p-4 border-b border-gray-100 bg-gray-50 flex gap-2 overflow-x-auto hide-scrollbar">
             <button 
               onClick={() => setActiveTab('type')}
-              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'type' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`whitespace-nowrap px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'type' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
             >
               <Type className="inline w-4 h-4 mr-2" /> Type Signature
             </button>
             <button 
               onClick={() => setActiveTab('draw')}
-              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'draw' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`whitespace-nowrap px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'draw' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
             >
               <PenTool className="inline w-4 h-4 mr-2" /> Draw Signature
             </button>
           </div>
 
-          <div className="flex-1 p-8 flex flex-col relative bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9InJnYmEoMCwwLDAsLjAyKSIvPjwvc3ZnPg==')]">
+          <div className="flex-1 p-4 sm:p-8 flex flex-col bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9InJnYmEoMCwwLDAsLjAyKSIvPjwvc3ZnPg==')] overflow-hidden min-h-0">
             {activeTab === 'type' ? (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
                 <input 
                   type="text" 
                   value={typedName}
@@ -135,7 +135,7 @@ export default function Signature() {
                   className="w-full text-center text-2xl font-bold bg-transparent border-b-2 border-gray-200 focus:border-indigo-500 outline-none pb-2 mb-8"
                   placeholder="Type your name..."
                 />
-                <div className="grid grid-cols-2 gap-4 overflow-y-auto pr-2 pb-24">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto pr-2 pb-4 custom-scrollbar">
                   {FONTS.map(f => (
                     <div 
                       key={f.name}
@@ -156,7 +156,7 @@ export default function Signature() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex justify-between mb-4">
                   <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Draw in the box</span>
                   <button onClick={() => sigPadRef.current.clear()} className="text-red-500 text-xs font-bold hover:underline">Clear Canvas</button>
@@ -177,8 +177,8 @@ export default function Signature() {
               </div>
             )}
 
-            <div className="absolute bottom-8 left-8 right-8 flex gap-4">
-              <div className="flex gap-2 mr-auto bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+            <div className="mt-4 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
+              <div className="flex justify-center sm:justify-start gap-2 sm:mr-auto bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-x-auto hide-scrollbar shrink-0">
                 {COLORS.map(c => (
                   <button 
                     key={c.value} 
@@ -200,14 +200,14 @@ export default function Signature() {
                   }
                   downloadSignature(dataUrl);
                 }}
-                className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 font-bold py-4 rounded-2xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 font-bold py-3 sm:py-4 rounded-2xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Download size={20} /> Download
               </button>
               <button 
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-indigo-600 text-white font-bold py-3 sm:py-4 rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />} Save to Cloud
               </button>
@@ -216,7 +216,7 @@ export default function Signature() {
         </div>
 
         {/* My Signatures Sidebar */}
-        <div className="lg:col-span-4 bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden flex flex-col h-[650px]">
+        <div className="lg:col-span-4 bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden flex flex-col h-[400px] lg:h-[650px]">
           <div className="p-6 border-b border-gray-200 bg-white">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <ImageIcon className="text-indigo-600" /> My Signatures
@@ -236,7 +236,7 @@ export default function Signature() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(sig.createdAt).toLocaleDateString()}</span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => downloadSignature(sig.fileUrl)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"><Download size={14} /></button>
                       <button onClick={() => deleteSignature(sig._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
                     </div>

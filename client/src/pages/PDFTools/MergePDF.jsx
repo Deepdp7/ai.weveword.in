@@ -69,7 +69,7 @@ export default function MergePDF() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 px-4 sm:px-6">
       <div className="flex items-center gap-4 mb-8">
         <Link to="/pdf-tools" className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-brand-600 hover:border-brand-300 transition-colors">
           <ArrowLeft className="w-5 h-5" />
@@ -83,7 +83,7 @@ export default function MergePDF() {
       {/* Dropzone */}
       <div 
         {...getRootProps()} 
-        className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all cursor-pointer ${
+        className={`border-2 border-dashed rounded-3xl p-6 md:p-12 text-center transition-all cursor-pointer ${
           isDragActive ? 'border-brand-500 bg-brand-50 scale-[1.02]' : 'border-gray-300 bg-white hover:border-brand-400 hover:bg-gray-50'
         }`}
       >
@@ -106,19 +106,19 @@ export default function MergePDF() {
       {/* File List */}
       {files.length > 0 && (
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50">
             <h3 className="font-semibold text-gray-900">Files to merge ({files.length})</h3>
             {!resultBlob ? (
               <button 
                 onClick={handleMerge}
                 disabled={isMerging || files.length < 2}
-                className="px-6 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md shadow-brand-500/20"
+                className="w-full sm:w-auto justify-center px-6 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md shadow-brand-500/20"
               >
                 {isMerging ? <Loader2 className="w-5 h-5 animate-spin" /> : <Layers className="w-5 h-5" />}
                 {isMerging ? 'Merging...' : 'Merge PDFs'}
               </button>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => {
                     const url = window.URL.createObjectURL(new Blob([resultBlob]));
@@ -130,7 +130,7 @@ export default function MergePDF() {
                     link.parentNode.removeChild(link);
                     window.URL.revokeObjectURL(url);
                   }}
-                  className="px-4 py-2 bg-white border border-brand-600 text-brand-600 font-medium rounded-xl hover:bg-brand-50 transition-colors flex items-center gap-2 shadow-sm text-sm"
+                  className="w-full sm:w-auto justify-center px-4 py-2 bg-white border border-brand-600 text-brand-600 font-medium rounded-xl hover:bg-brand-50 transition-colors flex items-center gap-2 shadow-sm text-sm"
                 >
                   <Download className="w-4 h-4" /> Download
                 </button>
@@ -147,11 +147,11 @@ export default function MergePDF() {
                     setIsSavingCloud(false);
                   }}
                   disabled={isSavingCloud}
-                  className="px-4 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-md shadow-brand-500/20 text-sm"
+                  className="w-full sm:w-auto justify-center px-4 py-2 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-md shadow-brand-500/20 text-sm"
                 >
                   {isSavingCloud ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />} Save to Cloud
                 </button>
-                <button onClick={() => {setResultBlob(null); setFiles([]);}} className="px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors font-medium text-sm">Clear</button>
+                <button onClick={() => {setResultBlob(null); setFiles([]);}} className="w-full sm:w-auto justify-center px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors font-medium text-sm">Clear</button>
               </div>
             )}
           </div>

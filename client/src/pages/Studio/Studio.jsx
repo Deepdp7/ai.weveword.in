@@ -1178,10 +1178,13 @@ export default function Studio() {
                 </div>
               </div>
 
-              <div className="w-full overflow-x-auto pb-8">
+              <div className="w-full overflow-x-hidden pb-8 flex justify-center">
                 <div
-                  className={cn("mx-auto", viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" : "flex flex-col items-center gap-12")}
-                  style={{ minWidth: `${currentConfig.w}px` }}
+                  className={cn("transition-transform duration-300 origin-top", viewMode === "grid" ? "grid grid-cols-1 gap-8" : "flex flex-col items-center gap-12")}
+                  style={{ 
+                    width: `${currentConfig.w}px`,
+                    zoom: typeof window !== 'undefined' && window.innerWidth < 640 ? 0.42 : typeof window !== 'undefined' && window.innerWidth < 1024 ? 0.7 : 1
+                  }}
                 >
                   {engine === "local" ? (
                     pages.length > 0 ? (
