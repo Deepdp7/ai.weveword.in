@@ -68,7 +68,7 @@ export default function CreditShop() {
       }
 
       const rzp = new window.Razorpay({
-        key: order.keyId,
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || order.keyId,
         amount: order.amount,
         currency: order.currency,
         name: 'Waveword AI',
@@ -84,16 +84,28 @@ export default function CreditShop() {
             setTransactions(txRes.data.transactions || []);
           } catch (verifyErr) {
             setError(verifyErr.response?.data?.message || 'Payment verification failed.');
+          } finally {
+            setBuying(null);
           }
         },
         prefill: { name: '', email: '' },
         theme: { color: '#4f46e5' },
+        modal: {
+          ondismiss: () => {
+            setBuying(null);
+            setError('Payment cancelled by user.');
+          }
+        }
+      });
+
+      rzp.on('payment.failed', function (response){
+        setBuying(null);
+        setError(response.error.description || 'Payment failed.');
       });
 
       rzp.open();
     } catch (err) {
       setError(err.response?.data?.message || 'Could not initiate payment.');
-    } finally {
       setBuying(null);
     }
   };
