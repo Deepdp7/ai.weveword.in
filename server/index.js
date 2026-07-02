@@ -35,14 +35,33 @@ app.use((req, res, next) => {
 
 // Global Middleware
 app.use(helmet()); // Security headers
+
+// CORS configuration - Support for production domains
+const allowedOrigins = process.env.CLIENT_URL 
+  ? [process.env.CLIENT_URL, 'http://localhost:5174', 'http://localhost:5173']
+  : ['http://localhost:5174', 'http://localhost:5173'];
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow localhost and local network IPs in development
-    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.') || origin.includes('10.')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost and local network IPs for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.') || origin.includes('10.')) {
+      return callback(null, true);
     }
+    
+    // Allow exact matches from CLIENT_URL
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // In production, if we want to allow all origins temporarily (or you can strict it down later)
+    if (process.env.NODE_ENV === 'production') {
+      return callback(null, true); // Allow all in production temporarily to prevent blocks, highly recommend locking this down to specific domains later
+    }
+
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
