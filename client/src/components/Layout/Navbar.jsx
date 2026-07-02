@@ -1,11 +1,16 @@
-import { Bell, Search, Menu, User, Wallet, LogIn } from 'lucide-react';
+import { Bell, Search, Menu, User, Wallet, LogIn, CheckCircle, AlertTriangle, Info, Megaphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ onMenuClick }) {
   const [credits, setCredits] = useState('...');
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
+  
   const { user } = useAuth();
 
   useEffect(() => {
@@ -19,8 +24,61 @@ export default function Navbar({ onMenuClick }) {
         console.error('Failed to fetch credits', err);
       }
     };
+
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await axios.get(`http://${window.location.hostname}:5000/api/notifications`, { withCredentials: true });
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      } catch (err) {
+        console.error('Failed to fetch notifications', err);
+      }
+    };
+
     fetchCredits();
+    fetchNotifications();
+
+    const interval = setInterval(() => {
+      fetchCredits();
+      fetchNotifications();
+    }, 60000); // Poll every minute
+
+    return () => clearInterval(interval);
   }, [user]);
+
+  // Handle clicking outside to close notifications dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleNotificationClick = async () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications && unreadCount > 0) {
+      // Mark all as read when opening
+      try {
+        await axios.put(`http://${window.location.hostname}:5000/api/notifications/all/read`, {}, { withCredentials: true });
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      } catch (err) {
+        console.error('Failed to mark read', err);
+      }
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'success': return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+      case 'ad': return <Megaphone className="w-5 h-5 text-purple-500" />;
+      default: return <Info className="w-5 h-5 text-blue-500" />;
+    }
+  };
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shadow-sm z-10 sticky top-0">
@@ -48,10 +106,55 @@ export default function Navbar({ onMenuClick }) {
               <Wallet className="w-4 h-4" />
               <span className="text-sm font-semibold">{credits} Credits</span>
             </Link>
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-            </button>
+            
+            {/* Notification Bell & Dropdown */}
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={handleNotificationClick}
+                className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                )}
+              </button>
+
+              {/* Dropdown Menu */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 origin-top-right animate-in fade-in slide-in-from-top-4 duration-200">
+                  <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                    <h3 className="font-bold text-gray-900">Notifications</h3>
+                    {unreadCount > 0 && <span className="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded-full">{unreadCount} New</span>}
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto overscroll-contain">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        <Bell className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                        <p className="text-sm">No notifications yet.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-50">
+                        {notifications.map((notif) => (
+                          <div key={notif._id} className={`p-4 flex gap-4 hover:bg-gray-50 transition-colors ${!notif.isRead ? 'bg-indigo-50/30' : ''}`}>
+                            <div className="shrink-0 mt-1">
+                              {getNotificationIcon(notif.type)}
+                            </div>
+                            <div>
+                              <h4 className={`text-sm ${!notif.isRead ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}`}>{notif.title}</h4>
+                              <p className="text-xs text-gray-500 mt-1 leading-relaxed">{notif.message}</p>
+                              <p className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wider">
+                                {new Date(notif.createdAt).toLocaleDateString()} at {new Date(notif.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link to="/profile" className="w-9 h-9 bg-brand-100 rounded-full flex items-center justify-center text-brand-700 font-medium hover:bg-brand-200 transition-colors border border-brand-200 cursor-pointer">
               <User className="w-5 h-5" />
             </Link>

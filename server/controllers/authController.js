@@ -4,6 +4,7 @@ import generateToken from '../utils/generateToken.js';
 import { sendWelcomeEmail } from '../utils/emailService.js';
 import crypto from 'crypto';
 import Transaction from '../models/Transaction.js';
+import Notification from '../models/Notification.js';
 
 // @desc    Register a new user
 // @route   POST /api/auth/signup
@@ -70,6 +71,14 @@ export const signupUser = async (req, res) => {
       }
 
       const token = generateToken(res, user._id);
+
+      // Create welcome / ad notification
+      await Notification.create({
+        userId: user._id,
+        title: 'Welcome to Waveword AI!',
+        message: 'Explore our premium AI tools like Studio, PDF Suite, and AI Video Animator today!',
+        type: 'ad'
+      });
 
       // Fire welcome email asynchronously
       sendWelcomeEmail(user.email, user.name).catch(err =>

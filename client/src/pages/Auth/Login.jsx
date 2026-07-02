@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/logo2.png';
+import SEO from '../../components/SEO';
 
 export default function Login() {
   const { login } = useAuth();
@@ -31,6 +32,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex bg-white font-sans">
+      <SEO 
+        title="Sign In | WaveWord AI"
+        description="Login to your WaveWord AI account to access all your AI tools and saved projects."
+        canonical="/login"
+      />
       {/* Left Side - Form */}
       <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:w-1/2 xl:w-[45%]">
         <div className="mx-auto w-full max-w-sm lg:max-w-md">

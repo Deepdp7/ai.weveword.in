@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, UserX, UserCheck, Crown, Trash2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
+import { Search, UserX, UserCheck, Crown, Trash2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, Shield, Coins, History, MessageSquare, Activity } from 'lucide-react';
 
 const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
@@ -24,6 +24,16 @@ export default function UserManagement() {
   const [planModal, setPlanModal] = useState(null); // { userId, currentPlan }
   const [newPlan, setNewPlan] = useState('free');
   const [creditsBonus, setCreditsBonus] = useState(0);
+
+  const [creditModal, setCreditModal] = useState(null); // { userId, currentCredits }
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditReason, setCreditReason] = useState('');
+  const [creditAction, setCreditAction] = useState('add_remove');
+
+  const [historyModal, setHistoryModal] = useState(null); // { userId, userName }
+  const [historyTab, setHistoryTab] = useState('tasks'); // 'tasks' or 'chats'
+  const [userHistory, setUserHistory] = useState({ transactions: [], chats: [] });
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchUsers = useCallback(async (page = 1) => {
     setLoading(true);
@@ -79,6 +89,21 @@ export default function UserManagement() {
     finally { setActionLoading(null); }
   };
 
+  const handleUpdateCredits = async () => {
+    if (!creditModal || !creditAmount) return;
+    setActionLoading(creditModal.userId + '_cred');
+    try {
+      const { data } = await axios.patch(`${API}/admin/users/${creditModal.userId}/credits`, {
+        action: creditAction,
+        amount: Number(creditAmount),
+        reason: creditReason,
+      });
+      setUsers(users.map(u => u._id === creditModal.userId ? { ...u, credits: data.credits } : u));
+      setCreditModal(null);
+    } catch (err) { alert(err.response?.data?.message || 'Credit update failed.'); }
+    finally { setActionLoading(null); }
+  };
+
   const handleToggleRole = async (userId) => {
     if (!confirm('Are you sure you want to toggle this user\'s admin status?')) return;
     setActionLoading(userId + '_role');
@@ -87,6 +112,23 @@ export default function UserManagement() {
       setUsers(users.map(u => u._id === userId ? { ...u, role: data.role } : u));
     } catch (err) { alert(err.response?.data?.message || 'Role update failed.'); }
     finally { setActionLoading(null); }
+  };
+
+  const handleOpenHistory = async (user) => {
+    setHistoryModal({ userId: user._id, userName: user.name });
+    setHistoryTab('tasks');
+    setHistoryLoading(true);
+    try {
+      const [txRes, chatRes] = await Promise.all([
+        axios.get(`${API}/admin/users/${user._id}/transactions`),
+        axios.get(`${API}/admin/users/${user._id}/chats`)
+      ]);
+      setUserHistory({ transactions: txRes.data.transactions, chats: chatRes.data.chats });
+    } catch (err) {
+      alert('Could not fetch user history');
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   return (
@@ -192,6 +234,20 @@ export default function UserManagement() {
                         <Crown className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => { setCreditModal({ userId: user._id, currentCredits: user.credits }); setCreditAmount(''); setCreditReason(''); setCreditAction('add_remove'); }}
+                        className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                        title="Add/Remove/Set Credits"
+                      >
+                        <Coins className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenHistory(user)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="View History & Chats"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleToggleRole(user._id)}
                         disabled={actionLoading === user._id + '_role'}
                         className={`p-2 rounded-lg transition-colors ${user.role === 'admin' ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'} disabled:opacity-40`}
@@ -262,6 +318,125 @@ export default function UserManagement() {
               <button onClick={handleUpdatePlan} disabled={actionLoading?.endsWith('_plan')} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium disabled:opacity-60">
                 {actionLoading?.endsWith('_plan') ? 'Saving…' : 'Save Changes'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credit Edit Modal */}
+      {creditModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Manage Credits</h3>
+            <p className="text-sm text-gray-500 mb-6">Current Balance: {creditModal.currentCredits} cr</p>
+            <div className="space-y-4">
+              <div className="flex bg-gray-100 p-1 rounded-lg">
+                <button 
+                  onClick={() => setCreditAction('add_remove')} 
+                  className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${creditAction === 'add_remove' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                >Add / Deduct</button>
+                <button 
+                  onClick={() => setCreditAction('set')} 
+                  className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${creditAction === 'set' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                >Set Exact Balance</button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {creditAction === 'set' ? 'New Balance Amount' : 'Amount to Add/Remove'}
+                </label>
+                <input type="number" value={creditAmount} onChange={e => setCreditAmount(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={creditAction === 'set' ? 'e.g., 500' : 'Use negative for deductions (e.g., -50)'} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reason (optional)</label>
+                <input type="text" value={creditReason} onChange={e => setCreditReason(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Refund, Bonus, Manual adjustment" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setCreditModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50">Cancel</button>
+              <button onClick={handleUpdateCredits} disabled={actionLoading?.endsWith('_cred') || !creditAmount} className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium disabled:opacity-60">
+                {actionLoading?.endsWith('_cred') ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History & Chats Modal */}
+      {historyModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">User History: {historyModal.userName}</h3>
+                <p className="text-sm text-gray-500 mt-1">View task transactions and AI mentor chat logs.</p>
+              </div>
+              <button onClick={() => setHistoryModal(null)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
+                <Trash2 className="w-5 h-5 opacity-0 pointer-events-none" /> {/* Placeholder spacing */}
+                <span className="absolute right-6 top-6 cursor-pointer bg-gray-100 hover:bg-gray-200 p-2 rounded-full" onClick={() => setHistoryModal(null)}>X</span>
+              </button>
+            </div>
+            
+            <div className="flex border-b border-gray-200 bg-gray-50 px-6">
+              <button onClick={() => setHistoryTab('tasks')} className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${historyTab === 'tasks' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                <Activity className="w-4 h-4" /> Task & Credit History
+              </button>
+              <button onClick={() => setHistoryTab('chats')} className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${historyTab === 'chats' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                <MessageSquare className="w-4 h-4" /> AI Mentor Chats
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+              {historyLoading ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <RefreshCw className="w-8 h-8 animate-spin mb-4" />
+                  <p>Loading history...</p>
+                </div>
+              ) : historyTab === 'tasks' ? (
+                <div className="space-y-3">
+                  {userHistory.transactions.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">No transactions found.</div>
+                  ) : (
+                    userHistory.transactions.map(tx => (
+                      <div key={tx._id} className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center shadow-sm">
+                        <div>
+                          <p className="font-semibold text-gray-900 text-sm">{tx.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">{new Date(tx.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`font-bold text-sm ${tx.credits > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                            {tx.credits > 0 ? '+' : ''}{tx.credits} cr
+                          </span>
+                          <p className="text-xs text-gray-400 mt-1">Bal: {tx.balanceAfter}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {userHistory.chats.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">No chat history found.</div>
+                  ) : (
+                    userHistory.chats.map(chat => (
+                      <div key={chat._id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gray-100 p-3 px-4 border-b border-gray-200 font-bold text-gray-700 capitalize flex justify-between">
+                          <span>Mentor: {chat.mentor}</span>
+                          <span className="text-xs font-normal text-gray-500 mt-1">Last active: {new Date(chat.updatedAt).toLocaleString()}</span>
+                        </div>
+                        <div className="p-4 max-h-96 overflow-y-auto space-y-4 bg-gray-50">
+                          {chat.messages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[80%] rounded-2xl p-3 px-4 text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border border-gray-200 rounded-tl-none shadow-sm'}`}>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

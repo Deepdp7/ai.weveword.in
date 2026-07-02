@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+Allow: /about
+Allow: /contact
+Allow: /pricing
+Allow: /features
+Allow: /tools
+Allow: /blog
+Allow: /privacy
+Allow: /terms
+
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /api
+Disallow: /api/*
+Disallow: /private
+Disallow: /studio
+Disallow: /project-builder
+Disallow: /profile
+
+Sitemap: https://ai.waveword.in/sitemap.xml

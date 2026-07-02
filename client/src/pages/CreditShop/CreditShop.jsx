@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Coins, Zap, Crown, Star, Check, TrendingUp, History, PlayCircle, AlertCircle } from 'lucide-react';
+import { Coins, Zap, Crown, Star, Check, TrendingUp, History, PlayCircle, AlertCircle, Calculator } from 'lucide-react';
 
 const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
 
-const PACK_ICONS = { starter: Zap, popular: Star, pro: Crown, elite: Crown };
+const PACK_ICONS = { mini: Coins, starter: Zap, popular: Star, pro: Crown, elite: Crown };
 const PLAN_COLORS = {
   basic: { bg: 'from-blue-500 to-blue-700', badge: 'bg-blue-100 text-blue-700' },
   pro: { bg: 'from-indigo-500 to-purple-700', badge: 'bg-indigo-100 text-indigo-700' },
@@ -27,6 +27,10 @@ export default function CreditShop() {
   const [isAdPlaying, setIsAdPlaying] = useState(false);
   const [adTimeLeft, setAdTimeLeft] = useState(15);
   const [adRewardReady, setAdRewardReady] = useState(false);
+
+  // Calculator State
+  const [calcInputs, setCalcInputs] = useState({ advanced: 0, images: 0, standard: 0, video: 0 });
+  const totalEstimatedCredits = (calcInputs.advanced * 10) + (calcInputs.images * 15) + (calcInputs.standard * 1) + (calcInputs.video * 20);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -184,7 +188,7 @@ export default function CreditShop() {
 
       {/* Tabs */}
       <div className="flex overflow-x-auto scrollbar-hide gap-2 mb-6 sm:mb-8 bg-gray-100 p-1 rounded-xl w-full sm:w-fit">
-        {[['credits', 'Credit Packs'], ['plans', 'Subscriptions'], ['history', 'History']].map(([key, label]) => (
+        {[['credits', 'Credit Packs'], ['plans', 'Subscriptions'], ['calculator', 'Calculator'], ['history', 'History']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -318,6 +322,90 @@ export default function CreditShop() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Credit Calculator ── */}
+      {tab === 'calculator' && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 max-w-2xl mx-auto">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Calculator className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" />
+            Credit Usage Estimator
+          </h2>
+          <p className="text-gray-500 text-sm mb-6 sm:mb-8">Estimate your monthly credit needs based on your planned usage.</p>
+          
+          <div className="space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-5">
+              <div>
+                <h4 className="font-semibold text-gray-800 text-sm sm:text-base">Advanced AI (GPT-4 / Claude Opus)</h4>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">10 credits per request</p>
+              </div>
+              <input 
+                type="number" min="0" 
+                value={calcInputs.advanced || ''}
+                onChange={e => setCalcInputs({...calcInputs, advanced: parseInt(e.target.value) || 0})}
+                className="w-20 sm:w-24 border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-2 text-center text-sm font-medium outline-none transition-all" 
+                placeholder="0" 
+              />
+            </div>
+            
+            <div className="flex items-center justify-between border-b border-gray-100 pb-5">
+              <div>
+                <h4 className="font-semibold text-gray-800 text-sm sm:text-base">AI Image Generation (DALL-E 3)</h4>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">15 credits per image</p>
+              </div>
+              <input 
+                type="number" min="0" 
+                value={calcInputs.images || ''}
+                onChange={e => setCalcInputs({...calcInputs, images: parseInt(e.target.value) || 0})}
+                className="w-20 sm:w-24 border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-2 text-center text-sm font-medium outline-none transition-all" 
+                placeholder="0" 
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-b border-gray-100 pb-5">
+              <div>
+                <h4 className="font-semibold text-gray-800 text-sm sm:text-base">Standard AI requests</h4>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">1 credit per request</p>
+              </div>
+              <input 
+                type="number" min="0" 
+                value={calcInputs.standard || ''}
+                onChange={e => setCalcInputs({...calcInputs, standard: parseInt(e.target.value) || 0})}
+                className="w-20 sm:w-24 border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-2 text-center text-sm font-medium outline-none transition-all" 
+                placeholder="0" 
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-b border-gray-100 pb-5">
+              <div>
+                <h4 className="font-semibold text-gray-800 text-sm sm:text-base">AI Video Generation</h4>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">20 credits per minute</p>
+              </div>
+              <input 
+                type="number" min="0" 
+                value={calcInputs.video || ''}
+                onChange={e => setCalcInputs({...calcInputs, video: parseInt(e.target.value) || 0})}
+                className="w-20 sm:w-24 border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-2 text-center text-sm font-medium outline-none transition-all" 
+                placeholder="0" 
+              />
+            </div>
+          </div>
+          
+          <div className="mt-8 bg-indigo-50 border border-indigo-100 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <p className="text-sm text-indigo-600 font-bold uppercase tracking-wider">Estimated Monthly Needs</p>
+              <p className="text-4xl font-extrabold text-indigo-900 mt-1 flex items-baseline justify-center sm:justify-start gap-1">
+                {totalEstimatedCredits.toLocaleString()} <span className="text-lg font-medium text-indigo-700">credits</span>
+              </p>
+            </div>
+            <button 
+              onClick={() => setTab('credits')}
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-sm shadow-indigo-200"
+            >
+              View Recommended Packs
+            </button>
+          </div>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/logo2.png';
+import SEO from '../../components/SEO';
 
 export default function Signup() {
   const { register } = useAuth();
@@ -31,6 +32,11 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen flex bg-white font-sans">
+      <SEO 
+        title="Create an Account | WaveWord AI"
+        description="Join WaveWord AI for free to unlock powerful AI tools, image generation, and productivity features."
+        canonical="/signup"
+      />
       {/* Left Side - Visuals */}
       <div className="hidden lg:flex relative w-0 flex-1 bg-slate-900 items-center justify-center overflow-hidden">
         {/* Abstract Background Gradients */}

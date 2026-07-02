@@ -18,6 +18,7 @@ import labRoutes from './routes/labRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -98,6 +99,7 @@ app.use('/api/pdf', pdfRoutes);
 app.use('/api/signatures', signatureRoutes);
 app.use('/api/scan-fix', scanRoutes);
 app.use('/api/animator', animatorRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Placeholder for future routes
 // app.use('/api/users', userRoutes);

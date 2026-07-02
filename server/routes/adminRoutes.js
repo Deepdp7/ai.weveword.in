@@ -8,6 +8,9 @@ import {
   getAllTransactions,
   updateUserRole,
   getAdminTasks,
+  updateUserCredits,
+  getUserTransactions,
+  getUserAIChats,
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
@@ -23,8 +26,11 @@ router.get('/stats', getDashboardStats);
 router.get('/users', getAllUsers);
 router.patch('/users/:id/ban', toggleBanUser);
 router.patch('/users/:id/plan', updateUserPlan);
+router.patch('/users/:id/credits', updateUserCredits);
 router.patch('/users/:id/role', updateUserRole);
 router.delete('/users/:id', deleteUser);
+router.get('/users/:id/transactions', getUserTransactions);
+router.get('/users/:id/chats', getUserAIChats);
 
 // Tasks (Admin task history)
 router.get('/tasks', getAdminTasks);

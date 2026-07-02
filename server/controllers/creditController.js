@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Transaction from '../models/Transaction.js';
+import Notification from '../models/Notification.js';
 
 // Tool credit costs (mirrors PRD Section 10.2)
 export const TOOL_COSTS = {
@@ -56,6 +57,25 @@ export const deductCredits = async (req, res) => {
       balanceAfter: user.credits,
     });
 
+    if (cost > 0) {
+      await Notification.create({
+        userId: user._id,
+        title: 'Credits Used',
+        message: `Used ${cost} credits for ${toolKey}. Remaining: ${user.credits} credits.`,
+        type: 'info',
+      });
+    }
+
+    // Low credit warning (threshold 20)
+    if (user.credits < 20 && (user.credits + cost) >= 20) {
+      await Notification.create({
+        userId: user._id,
+        title: 'Low Credit Warning',
+        message: `Your credit balance is running low (${user.credits} credits left). Please recharge soon to avoid interruptions.`,
+        type: 'warning',
+      });
+    }
+
     res.status(200).json({
       status: 'success',
       creditsDeducted: cost,
@@ -91,6 +111,13 @@ export const awardAdCredits = async (req, res) => {
       description: `Watched ${adType} ad`,
       credits: earned,
       balanceAfter: user.credits,
+    });
+
+    await Notification.create({
+      userId: user._id,
+      title: 'Ad Reward Earned',
+      message: `You earned ${earned} credits for watching an ad!`,
+      type: 'success',
     });
 
     res.status(200).json({

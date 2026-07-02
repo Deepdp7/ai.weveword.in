@@ -3,6 +3,7 @@ import Transaction from '../models/Transaction.js';
 import Payment from '../models/Payment.js';
 import FileModel from '../models/File.js';
 import AdminTask from '../models/AdminTask.js';
+import AIChat from '../models/AIChat.js';
 
 // @desc    Get admin dashboard statistics
 // @route   GET /api/admin/stats
@@ -208,6 +209,68 @@ export const updateUserPlan = async (req, res) => {
   }
 };
 
+// @desc    Update user credits (admin override)
+// @route   PATCH /api/admin/users/:id/credits
+// @access  Admin only
+export const updateUserCredits = async (req, res) => {
+  try {
+    const { action, amount, reason } = req.body;
+    const inputAmount = Number(amount);
+    
+    if (isNaN(inputAmount)) {
+      return res.status(400).json({ status: 'error', message: 'Valid amount is required.' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
+
+    let creditDelta = 0;
+    if (action === 'set') {
+      if (inputAmount < 0) return res.status(400).json({ status: 'error', message: 'Balance cannot be negative.' });
+      creditDelta = inputAmount - user.credits;
+    } else {
+      if (inputAmount === 0) return res.status(400).json({ status: 'error', message: 'Valid non-zero amount is required.' });
+      creditDelta = inputAmount;
+    }
+
+    // Prevent negative balance
+    if (user.credits + creditDelta < 0) {
+      return res.status(400).json({ status: 'error', message: `Cannot deduct ${Math.abs(creditDelta)}. User only has ${user.credits} credits.` });
+    }
+
+    if (creditDelta === 0) {
+      return res.status(200).json({ status: 'success', message: 'No changes made.', credits: user.credits });
+    }
+
+    user.credits += creditDelta;
+    await user.save();
+
+    await Transaction.create({
+      userId: user._id,
+      type: creditDelta > 0 ? 'bonus' : 'adjustment',
+      description: `Admin adjustment: ${reason || 'Manual modification'}`,
+      credits: creditDelta,
+      balanceAfter: user.credits,
+    });
+
+    await AdminTask.create({
+      adminId: req.user._id,
+      action: 'UPDATE_CREDITS',
+      targetUserId: user._id,
+      details: `${creditDelta > 0 ? 'Added' : 'Deducted'} ${Math.abs(creditDelta)} credits. Reason: ${reason || 'None'}`
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: `Successfully ${creditDelta > 0 ? 'added' : 'deducted'} ${Math.abs(creditDelta)} credits.`,
+      credits: user.credits,
+    });
+  } catch (error) {
+    console.error('Update credits error:', error);
+    res.status(500).json({ status: 'error', message: 'Could not update user credits.' });
+  }
+};
+
 // @desc    Hard delete a user account
 // @route   DELETE /api/admin/users/:id
 // @access  Admin only
@@ -314,5 +377,35 @@ export const getAdminTasks = async (req, res) => {
   } catch (error) {
     console.error('Get tasks error:', error);
     res.status(500).json({ status: 'error', message: 'Could not fetch admin tasks.' });
+  }
+};
+
+// @desc    Get user's transactions
+// @route   GET /api/admin/users/:id/transactions
+// @access  Admin only
+export const getUserTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ userId: req.params.id })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ status: 'success', transactions });
+  } catch (error) {
+    console.error('Error fetching user transactions:', error);
+    res.status(500).json({ status: 'error', message: 'Could not fetch user transactions.' });
+  }
+};
+
+// @desc    Get user's AI Mentor chats
+// @route   GET /api/admin/users/:id/chats
+// @access  Admin only
+export const getUserAIChats = async (req, res) => {
+  try {
+    const chats = await AIChat.find({ user: req.params.id })
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({ status: 'success', chats });
+  } catch (error) {
+    console.error('Error fetching user chats:', error);
+    res.status(500).json({ status: 'error', message: 'Could not fetch user chats.' });
   }
 };

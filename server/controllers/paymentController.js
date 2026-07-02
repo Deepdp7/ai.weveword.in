@@ -3,6 +3,7 @@ import { createHmac } from 'crypto';
 import Payment from '../models/Payment.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 
 let razorpayInstance = null;
 const getRazorpay = () => {
@@ -17,8 +18,9 @@ const getRazorpay = () => {
 
 // Credit Pack configuration (mirrors PRD Section 11)
 export const CREDIT_PACKS = {
+  mini: { credits: 25, amount: 1000, label: 'Mini Pack' },             // ₹10
   starter: { credits: 100, amount: 4900, label: 'Starter Pack' },       // ₹49
-  popular: { credits: 150, amount: 9900, label: 'Popular Pack' },      // ₹99
+  popular: { credits: 250, amount: 9900, label: 'Popular Pack' },      // ₹99
   pro: { credits: 450, amount: 19900, label: 'Pro Pack' },             // ₹199
 };
 
@@ -135,6 +137,14 @@ export const verifyPayment = async (req, res) => {
       balanceAfter: user.credits,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+    });
+
+    // Create Notification
+    await Notification.create({
+      userId: user._id,
+      title: 'Payment Successful',
+      message: `Your payment for ${payment.credits} credits was successful! New balance is ${user.credits} credits.`,
+      type: 'success',
     });
 
     res.status(200).json({

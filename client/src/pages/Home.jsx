@@ -1,6 +1,7 @@
 import { ArrowRight, PenTool, Image as ImageIcon, Video, FileText, FileSignature, LayoutTemplate, Clock, Scissors, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SEO from '../components/SEO';
 
 export default function Home() {
   const { user } = useAuth();
