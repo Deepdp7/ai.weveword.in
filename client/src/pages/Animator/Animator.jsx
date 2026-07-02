@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Download, Video, Music, Settings, Type, Loader2, Sparkles, CheckCircle2, Palette, Smartphone, Cloud, Zap } from 'lucide-react';
+import VoiceDictationButton from '../../components/VoiceDictationButton';
 import axios from 'axios';
 
 const API_BASE = `http://${window.location.hostname}:5000/api`;
@@ -288,7 +289,12 @@ export default function Animator() {
           <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-8">
             
             <div className="space-y-3">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Type className="w-4 h-4"/> Video Script</label>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex justify-between items-center w-full">
+                <span className="flex items-center gap-2"><Type className="w-4 h-4"/> Video Script</span>
+                <VoiceDictationButton 
+                  onTranscription={(newText) => setScript(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + newText)} 
+                />
+              </label>
               <textarea 
                 rows="4"
                 value={script}

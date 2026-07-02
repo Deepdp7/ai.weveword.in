@@ -25,6 +25,7 @@ import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
+import VoiceDictationButton from '../../components/VoiceDictationButton';
 
 const API = `http://${window.location.hostname}:5000/api`;
 axios.defaults.withCredentials = true;
@@ -586,12 +587,19 @@ export default function ProjectBuilder() {
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
-                  <textarea
-                    value={page.content}
-                    onChange={(e) => updatePage(page.id, 'content', e.target.value)}
-                    className="w-full min-h-[250px] p-6 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-brand-200 focus:bg-white outline-none transition-all text-sm font-medium leading-relaxed resize-y"
-                    placeholder="Start writing this chapter..."
-                  />
+                  <div className="relative group">
+                    <textarea
+                      value={page.content}
+                      onChange={(e) => updatePage(page.id, 'content', e.target.value)}
+                      className="w-full min-h-[250px] p-6 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-brand-200 focus:bg-white outline-none transition-all text-sm font-medium leading-relaxed resize-y pb-16"
+                      placeholder="Start writing this chapter..."
+                    />
+                    <div className="absolute bottom-4 right-4 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <VoiceDictationButton 
+                        onTranscription={(newText) => updatePage(page.id, 'content', page.content + (page.content.endsWith(' ') || page.content.length === 0 ? '' : ' ') + newText)} 
+                      />
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>

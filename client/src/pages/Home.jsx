@@ -1,20 +1,18 @@
-import { ArrowRight, PenTool, Image as ImageIcon, Video, FileText, FileSignature, LayoutTemplate, Clock } from 'lucide-react';
+import { ArrowRight, PenTool, Image as ImageIcon, Video, FileText, FileSignature, LayoutTemplate, Clock, Scissors } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Home() {
   const tools = [
-    { name: 'Studio', desc: 'Convert text to realistic handwriting', icon: PenTool, path: '/studio', color: 'bg-blue-500', bg: 'bg-blue-50' },
-    { name: 'Scan & Fix', desc: 'Restore photos & clean notes', icon: ImageIcon, path: '/scan', color: 'bg-emerald-500', bg: 'bg-emerald-50' },
-    { name: 'Writing Animator', desc: 'Create live writing videos', icon: Video, path: '/animator', color: 'bg-purple-500', bg: 'bg-purple-50' },
+    { name: 'Studio', desc: 'Create & edit documents', icon: PenTool, path: '/studio', color: 'bg-brand-500', bg: 'bg-brand-50' },
+    { name: 'BG Remover', desc: 'Remove backgrounds instantly', icon: Scissors, path: '/bg-remover', color: 'bg-indigo-500', bg: 'bg-indigo-50' },
     { name: 'PDF Tools', desc: 'Merge, split & compress PDFs', icon: FileText, path: '/pdf-tools', color: 'bg-rose-500', bg: 'bg-rose-50' },
     { name: 'Signature Gen', desc: 'Create beautiful digital signatures', icon: FileSignature, path: '/signature', color: 'bg-amber-500', bg: 'bg-amber-50' },
     { name: 'Project Builder', desc: 'Drag-and-drop report maker', icon: LayoutTemplate, path: '/project', color: 'bg-indigo-500', bg: 'bg-indigo-50' },
   ];
 
   const recentFiles = [
-    { name: 'Physics_Notes.pdf', tool: 'Studio', time: '2 hours ago' },
-    { name: 'Old_Photo_Fixed.png', tool: 'Scan & Fix', time: '5 hours ago' },
-    { name: 'Intro_Animation.mp4', tool: 'Writing Animator', time: '1 day ago' },
+    { name: 'Marketing_Deck.ppt', tool: 'PPT Maker', time: '2 hours ago' },
+    { name: 'Contract_Signed.pdf', tool: 'Signature', time: '1 day ago' },
   ];
 
   return (

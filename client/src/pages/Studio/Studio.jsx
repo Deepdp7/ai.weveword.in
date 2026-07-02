@@ -24,6 +24,7 @@ import { cn } from "../../lib/utils";
 import { useToast } from "../../components/toastStore";
 import confetti from "canvas-confetti";
 import { jsPDF } from "jspdf";
+import VoiceDictationButton from "../../components/VoiceDictationButton";
 
 const API_BASE = `http://${window.location.hostname}:5000/api`;
 
@@ -1140,14 +1141,19 @@ export default function Studio() {
                 </div>
               </div>
 
-              <Card className="flex-none min-h-[300px] overflow-hidden flex flex-col p-0 border-slate-200/60 shadow-xl rounded-3xl">
+              <Card className="flex-none min-h-[300px] overflow-hidden flex flex-col p-0 border-slate-200/60 shadow-xl rounded-3xl relative group">
                 <textarea
-                  className="w-full h-full p-6 lg:p-8 text-slate-700 bg-white border-none focus:outline-none focus:ring-0 resize-none font-medium leading-relaxed transition-all"
+                  className="w-full h-full p-6 lg:p-8 text-slate-700 bg-white border-none focus:outline-none focus:ring-0 resize-none font-medium leading-relaxed transition-all pb-16"
                   style={{ minHeight: '300px' }}
                   placeholder="Type or paste your raw notes here..."
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                 />
+                <div className="absolute bottom-6 right-6 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <VoiceDictationButton 
+                    onTranscription={(newText) => setText(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + newText)} 
+                  />
+                </div>
               </Card>
             </div>
 

@@ -9,7 +9,6 @@ axios.defaults.withCredentials = true;
 const FOLDERS = [
   { label: 'All', value: 'All' },
   { label: 'Studio', value: 'studio' },
-  { label: 'Scan & Fix', value: 'scan' },
   { label: 'Writing Animator', value: 'animator' },
   { label: 'Signature', value: 'signature' },
   { label: 'PDF Tools', value: 'pdf' },
@@ -19,7 +18,6 @@ const FOLDERS = [
 
 const TOOL_LABELS = {
   studio: 'Studio',
-  scan: 'Scan & Fix',
   animator: 'Writing Animator',
   signature: 'Signature',
   pdf: 'PDF Tools',

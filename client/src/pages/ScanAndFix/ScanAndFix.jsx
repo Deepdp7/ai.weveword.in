@@ -69,13 +69,13 @@ export default function ScanAndFix() {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Scan & Fix AI</h1>
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Blur Fix AI</h1>
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-xl shadow-md">
                 <Zap size={14} className="text-yellow-400 fill-current" />
                 <span className="text-[10px] font-black tracking-tight uppercase">Cost: 5 Credits</span>
               </div>
             </div>
-            <p className="text-gray-500 font-medium">Real-time AI photo restoration for your documents.</p>
+            <p className="text-gray-500 font-medium">Instantly clear up blurry images, handwritten notes, and old photos.</p>
           </div>
         </div>
         {originalImage && (
@@ -92,7 +92,7 @@ export default function ScanAndFix() {
             <UploadCloud className="w-12 h-12" />
           </div>
           <h3 className="text-3xl font-black text-gray-900 mb-2 italic">DRAG & DROP</h3>
-          <p className="text-gray-400 font-bold max-w-sm mx-auto uppercase tracking-tighter">Blury notes? Dark photos? Old documents? Our AI fixes them all.</p>
+          <p className="text-gray-400 font-bold max-w-sm mx-auto uppercase tracking-tighter">Upload your blurry images, handwritten notes, or old photos to clear them instantly.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

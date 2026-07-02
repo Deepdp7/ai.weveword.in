@@ -11,9 +11,11 @@ import GenericConverter from './pages/PDFTools/GenericConverter';
 import ImagesToPDF from './pages/PDFTools/ImagesToPDF';
 import Studio from './pages/Studio/Studio';
 
-import ScanAndFix from './pages/ScanAndFix/ScanAndFix';
 import Signature from './pages/Signature/Signature';
 import Animator from './pages/Animator/Animator';
+import BgRemover from './pages/BgRemover/BgRemover';
+import ImageResizer from './pages/ImageResizer/ImageResizer';
+import MicroNoteMaker from './pages/MicroNoteMaker/MicroNoteMaker';
 import ProjectBuilder from './pages/ProjectBuilder/ProjectBuilder';
 import Library from './pages/Library/Library';
 import PPTMaker from './pages/PPTMaker/PPTMaker';
@@ -49,12 +51,11 @@ function App() {
         <Route path="/" element={user ? <MainLayout /> : <Navigate to="/login" />}>
           <Route index element={<Home />} />
           
-          {/* Scan & Fix */}
-          <Route path="scan" element={<ScanAndFix />} />
-          <Route path="scan-fix" element={<ScanAndFix />} />
-
           {/* Signature Generator */}
           <Route path="signature" element={<Signature />} />
+
+          {/* Micro Note Maker */}
+          <Route path="micro-notes" element={<MicroNoteMaker />} />
 
           {/* Writing Animator */}
           <Route path="animator" element={<Animator />} />
@@ -62,6 +63,8 @@ function App() {
 
           {/* Studio Tools */}
           <Route path="studio" element={<Studio />} />
+          <Route path="bg-remover" element={<BgRemover />} />
+          <Route path="image-resizer" element={<ImageResizer />} />
 
           {/* Project Builder */}
           <Route path="project" element={<ProjectBuilder />} />

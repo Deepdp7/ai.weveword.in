@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Presentation, Layout, Plus, Play, Download, Settings, Type, Square,
   Columns, Cloud, ChevronLeft, ChevronRight, Trash2, X, Sparkles,
@@ -6,6 +6,7 @@ import {
   AlignRight, Bold, Italic, Underline, Strikethrough, FileText,
   Grid, ArrowLeft, Zap
 } from 'lucide-react';
+import VoiceDictationButton from '../../components/VoiceDictationButton';
 import { jsPDF } from 'jspdf';
 import { useToast } from '../../components/toastStore';
 import { useAuth } from '../../context/AuthContext';
@@ -1143,7 +1144,14 @@ export default function PPTMaker() {
         {isPresenter ? (
           <p style={getInputStyle('content', slide, scale)} className="flex-1 leading-relaxed whitespace-pre-line mt-2">{slide.content}</p>
         ) : (
-          <textarea value={slide.content} onFocus={() => setSelectedField('content')} onChange={e => updateSlideField(slide.id, 'content', e.target.value)} placeholder="Start typing content..." className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none w-full resize-none mt-2 leading-relaxed" style={getInputStyle('content', slide)} />
+          <div className="flex-1 relative group flex flex-col mt-2">
+            <textarea value={slide.content} onFocus={() => setSelectedField('content')} onChange={e => updateSlideField(slide.id, 'content', e.target.value)} placeholder="Start typing content..." className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none w-full resize-none leading-relaxed" style={getInputStyle('content', slide)} />
+            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <VoiceDictationButton 
+                onTranscription={(newText) => updateSlideField(slide.id, 'content', (slide.content || '') + ((slide.content || '').endsWith(' ') || !(slide.content || '') ? '' : ' ') + newText)} 
+              />
+            </div>
+          </div>
         )}
       </div>
     );
