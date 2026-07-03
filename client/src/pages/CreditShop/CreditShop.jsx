@@ -444,7 +444,7 @@ export default function CreditShop() {
           {/* Ad Video */}
           <div className="flex-1 flex items-center justify-center relative">
             <video 
-              src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+              src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
               className="w-full h-full object-contain"
               autoPlay
               muted={false}
