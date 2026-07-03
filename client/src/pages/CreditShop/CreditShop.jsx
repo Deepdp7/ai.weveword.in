@@ -14,30 +14,40 @@ const PLAN_COLORS = {
 
 const formatAmount = (paise) => `₹${(paise / 100).toFixed(0)}`;
 
-const AdsterraBanner = ({ containerId }) => {
-  useEffect(() => {
-    const container = document.getElementById(containerId);
-    if (container && !container.hasChildNodes()) {
-      container.innerHTML = '';
-      window.atOptions = {
-        'key' : 'e4f2d2adff35a81bfa15194698f7d390',
-        'format' : 'iframe',
-        'height' : 60,
-        'width' : 468,
-        'params' : {}
-      };
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.src = '//www.highperformanceformat.com/e4f2d2adff35a81bfa15194698f7d390/invoke.js';
-      container.appendChild(script);
-    }
-  }, [containerId]);
+const AdsterraBanner = () => {
+  const iframeSource = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; background: transparent; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : 'e4f2d2adff35a81bfa15194698f7d390',
+            'format' : 'iframe',
+            'height' : 60,
+            'width' : 468,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highperformanceformat.com/e4f2d2adff35a81bfa15194698f7d390/invoke.js"></script>
+      </body>
+    </html>
+  `;
 
   return (
     <div className="flex justify-center my-4 overflow-hidden">
-      <div 
-        id={containerId} 
-        className="w-[468px] h-[60px] bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center overflow-hidden shadow-sm"
+      <iframe
+        title="Adsterra Banner"
+        srcDoc={iframeSource}
+        width="468"
+        height="60"
+        scrolling="no"
+        frameBorder="0"
+        style={{ border: 'none', overflow: 'hidden' }}
       />
     </div>
   );
@@ -334,7 +344,7 @@ export default function CreditShop() {
         ))}
       </div>
 
-      <AdsterraBanner containerId="adsterra-banner-shop" />
+      <AdsterraBanner />
 
       {/* ── Credit Packs ── */}
       {tab === 'credits' && (
@@ -556,7 +566,7 @@ export default function CreditShop() {
               <div className="text-white space-y-4">
                 <h3 className="text-2xl font-bold">Watch Sponsor Ad Below</h3>
                 <p className="text-gray-400 text-sm">Please keep this window open and wait for the countdown to complete to receive your 5 free credits.</p>
-                <AdsterraBanner containerId="adsterra-banner-modal" />
+                <AdsterraBanner />
               </div>
             ) : (
               <div className="text-white space-y-4">
