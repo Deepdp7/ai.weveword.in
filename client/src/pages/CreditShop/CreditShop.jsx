@@ -553,77 +553,65 @@ export default function CreditShop() {
         </div>
       )}
 
-      {/* ── Ad Player Modal / Direct Link Countdown ── */}
+      {/* ── Ad Player Modal ── */}
       {isAdPlaying && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col justify-center items-center p-6 animate-in fade-in duration-300">
-          <div className="max-w-md w-full text-center space-y-6 z-10">
-            <div className="bg-yellow-500 text-black font-extrabold text-xs px-3 py-1 rounded w-fit mx-auto">SPONSORED AD</div>
-            
-            {playingAdType === 'adsterra' ? (
-              <div className="text-white space-y-4">
-                <h3 className="text-2xl font-bold">Watch Sponsor Ad Below</h3>
-                <p className="text-gray-400 text-sm">Please keep this window open and wait for the countdown to complete to receive your 5 free credits.</p>
-                <AdsterraBanner />
-              </div>
-            ) : (
-              <div className="text-white space-y-4">
-                <h3 className="text-2xl font-bold">Sponsor Video Ad</h3>
-                <p className="text-gray-400 text-sm">Watch the video to get your reward.</p>
-              </div>
-            )}
-            
-            <div className="relative pt-1">
-              <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-800">
-                <div 
-                  style={{ width: `${((15 - adTimeLeft) / 15) * 100}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-1000"
-                />
-              </div>
-            </div>
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Fullscreen Video */}
+          <video
+            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            playsInline
+            muted={false}
+            loop
+          />
 
-            <div className="flex justify-between items-center text-white/70 text-sm font-mono">
-              <span>Time Left: {adTimeLeft}s</span>
-              {adRewardReady && <span className="text-emerald-400 font-bold">Reward Ready!</span>}
-            </div>
+          {/* Dark overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/60 z-10" />
 
-            {adRewardReady ? (
-              <button 
-                onClick={handleAdReward}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 animate-bounce transition-colors"
-              >
-                Claim 5 Credits & Close
-              </button>
-            ) : (
-              <button 
-                onClick={() => setIsAdPlaying(false)}
-                className="w-full bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white/50 hover:text-white py-3 px-6 rounded-xl transition-colors"
-              >
-                Cancel & Lose Reward
-              </button>
-            )}
+          {/* Top bar */}
+          <div className="relative z-20 flex items-center justify-between p-4">
+            <div className="bg-yellow-500 text-black font-extrabold text-xs px-3 py-1 rounded">
+              SPONSORED VIDEO AD
+            </div>
+            <div className="text-white/60 text-xs font-mono">
+              Ad will close in {adTimeLeft}s
+            </div>
           </div>
-          
-          {/* If not adsterra, play the sample video background */}
-          {playingAdType !== 'adsterra' && (
-            <>
-              <video 
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
-                className="absolute inset-0 w-full h-full object-contain -z-0 opacity-30"
-                autoPlay
-                muted={false}
-                playsInline
+
+          {/* Bottom overlay UI */}
+          <div className="relative z-20 mt-auto p-6 space-y-4">
+            {/* Progress bar */}
+            <div className="overflow-hidden h-1.5 rounded-full bg-white/20">
+              <div
+                style={{ width: `${((15 - adTimeLeft) / 15) * 100}%` }}
+                className="h-full bg-indigo-400 transition-all duration-1000 rounded-full"
               />
-              <a 
-                href="https://google.com" 
-                target="_blank" 
-                rel="noreferrer"
-                className="absolute inset-0 z-0 cursor-pointer"
-                title="Visit Sponsor"
-              >
-                <span className="sr-only">Visit Sponsor</span>
-              </a>
-            </>
-          )}
+            </div>
+
+            <div className="flex items-end justify-between gap-4">
+              <div className="text-white space-y-1">
+                <p className="text-xs text-white/50 uppercase tracking-wider font-bold">Earn Reward</p>
+                <p className="text-lg font-bold leading-tight">Watch this ad to get<br /><span className="text-emerald-400">+5 Free Credits</span></p>
+              </div>
+
+              {adRewardReady ? (
+                <button
+                  onClick={handleAdReward}
+                  className="shrink-0 bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 animate-bounce transition-colors shadow-lg shadow-emerald-500/30"
+                >
+                  Claim 5 Credits →
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsAdPlaying(false)}
+                  className="shrink-0 bg-white/10 hover:bg-white/20 border border-white/20 text-white/60 hover:text-white py-3 px-5 rounded-xl transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
