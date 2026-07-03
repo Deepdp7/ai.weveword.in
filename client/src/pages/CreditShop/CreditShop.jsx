@@ -20,7 +20,7 @@ const AdsterraBanner = () => {
   useEffect(() => {
     if (bannerRef.current && !bannerRef.current.firstChild) {
       const atOptions = {
-        'key' : 'e4f2d2adff35a81bfa15194698f7d390',
+        'key' : 'ebbdd45d4f50951047aa5111e1ab40b7',
         'format' : 'iframe',
         'height' : 60,
         'width' : 468,
@@ -31,7 +31,7 @@ const AdsterraBanner = () => {
 
       const script = document.createElement('script');
       script.type = 'text/javascript';
-      script.src = 'https://www.highperformanceformat.com/e4f2d2adff35a81bfa15194698f7d390/invoke.js';
+      script.src = 'https://www.highperformanceformat.com/ebbdd45d4f50951047aa5111e1ab40b7/invoke.js';
 
       bannerRef.current.appendChild(conf);
       bannerRef.current.appendChild(script);
@@ -44,7 +44,7 @@ const AdsterraBanner = () => {
         ref={bannerRef}
         className="w-[468px] h-[60px] bg-gray-50 border border-gray-200 border-dashed rounded-lg flex items-center justify-center overflow-hidden text-[10px] text-gray-400 relative"
       >
-        <span className="absolute pointer-events-none uppercase tracking-wider font-bold">Sponsor Ad (Disable AdBlocker if blank)</span>
+        <span className="absolute pointer-events-none uppercase tracking-wider font-bold">Sponsor Ad</span>
       </div>
     </div>
   );
