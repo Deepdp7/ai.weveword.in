@@ -1,8 +1,14 @@
 import axios from 'axios';
 
 const getApiBase = () => {
-  const savedUrl = localStorage.getItem('waveword-ai_api_url');
-  if (savedUrl) return savedUrl;
+  let savedUrl = localStorage.getItem('waveword-ai_api_url');
+  if (savedUrl) {
+    // If the page is HTTPS, force the saved URL to be HTTPS as well to prevent Mixed Content
+    if (window.location.protocol === 'https:' && savedUrl.startsWith('http://')) {
+      savedUrl = savedUrl.replace('http://', 'https://');
+    }
+    return savedUrl;
+  }
 
   // Use the current protocol (http or https) dynamically to prevent Mixed Content errors
   const protocol = window.location.protocol;
