@@ -245,12 +245,12 @@ export default function AIMentors() {
   const MentorIcon = currentMentor.icon;
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex gap-6 relative">
+    <div className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-4 md:gap-6 relative">
       
       {/* Quota Modal */}
       {showQuotaModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm rounded-3xl">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 text-center animate-in fade-in zoom-in duration-200">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 rounded-3xl">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-gray-100 text-center animate-in fade-in zoom-in duration-200">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Bot className="w-8 h-8" />
             </div>
@@ -279,9 +279,11 @@ export default function AIMentors() {
         </div>
       )}
 
-      {/* Sidebar: Mentor Selection */}
-      <div className="w-80 bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col overflow-hidden shrink-0">
-        <div className="p-6 border-b border-gray-50 bg-gray-50/50">
+      {/* Sidebar: Mentor Selection (Horizontal Row on Mobile, Vertical Sidebar on Desktop) */}
+      <div className="w-full md:w-80 bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 flex flex-col overflow-hidden shrink-0">
+        
+        {/* Sidebar Header - Hidden on Mobile to save space */}
+        <div className="hidden md:block p-6 border-b border-gray-50 bg-gray-50/50">
           <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
             <Bot className="w-6 h-6 text-brand-600" />
             AI Mentors
@@ -299,7 +301,8 @@ export default function AIMentors() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Mentor Selector Items - Horizontal scroll row on Mobile, Vertical list on Desktop */}
+        <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:overflow-y-auto p-3 md:p-4 gap-2 md:gap-3 shrink-0 scrollbar-none">
           {Object.values(MENTORS).map((mentor) => {
             const Icon = mentor.icon;
             const isActive = activeMentor === mentor.id;
@@ -308,20 +311,20 @@ export default function AIMentors() {
               <button
                 key={mentor.id}
                 onClick={() => setActiveMentor(mentor.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                className={`flex items-center gap-2 md:gap-4 p-2.5 md:p-4 rounded-xl md:rounded-2xl transition-all shrink-0 ${
                   isActive 
-                    ? `${mentor.lightColor} ${mentor.border} border-2 shadow-sm scale-[1.02]` 
-                    : 'border-2 border-transparent hover:bg-gray-50 text-left'
+                    ? `${mentor.lightColor} ${mentor.border} border border-2 shadow-sm scale-[1.02]` 
+                    : 'border border-2 border-transparent hover:bg-gray-50 text-left'
                 }`}
               >
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
                   isActive ? mentor.color : 'bg-gray-100 text-gray-400'
                 } ${isActive ? 'text-white' : ''}`}>
-                  <Icon className="w-6 h-6" />
+                  <Icon className="w-4.5 h-4.5 md:w-6 md:h-6" />
                 </div>
-                <div>
-                  <h3 className={`font-bold ${isActive ? mentor.textColor : 'text-gray-900'}`}>{mentor.name}</h3>
-                  <p className="text-xs font-medium text-gray-500 mt-0.5">{mentor.role}</p>
+                <div className="text-left">
+                  <h3 className={`text-xs md:text-sm font-bold ${isActive ? mentor.textColor : 'text-gray-900'}`}>{mentor.name}</h3>
+                  <p className="hidden md:block text-xs font-medium text-gray-500 mt-0.5">{mentor.role}</p>
                 </div>
               </button>
             );
@@ -330,48 +333,48 @@ export default function AIMentors() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+      <div className="flex-1 bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 flex flex-col overflow-hidden min-h-[300px]">
         
         {/* Chat Header */}
-        <div className={`p-4 border-b flex items-center justify-between ${currentMentor.lightColor} ${currentMentor.border}`}>
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${currentMentor.color} shadow-sm`}>
-              <MentorIcon className="w-5 h-5" />
+        <div className={`p-3 md:p-4 border-b flex items-center justify-between ${currentMentor.lightColor} ${currentMentor.border}`}>
+          <div className="flex items-center gap-2.5 md:gap-3">
+            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center text-white ${currentMentor.color} shadow-sm`}>
+              <MentorIcon className="w-4.5 h-4.5 md:w-5 md:h-5" />
             </div>
-            <div>
-              <h2 className={`font-black text-lg ${currentMentor.textColor}`}>{currentMentor.name}</h2>
-              <p className="text-xs font-semibold text-gray-500">{currentMentor.role}</p>
+            <div className="text-left">
+              <h2 className={`font-black text-sm md:text-lg leading-tight ${currentMentor.textColor}`}>{currentMentor.name}</h2>
+              <p className="text-[10px] md:text-xs font-semibold text-gray-500 leading-tight mt-0.5">{currentMentor.role}</p>
             </div>
           </div>
           
           {currentMessages.length > 0 && (
             <button 
               onClick={clearChat}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors flex items-center gap-2 text-sm font-bold"
+              className="p-1.5 md:p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors flex items-center gap-1 md:gap-2 text-xs md:text-sm font-bold"
             >
-              <Trash2 className="w-4 h-4" /> Clear
+              <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> <span className="hidden sm:inline">Clear</span>
             </button>
           )}
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/30">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-50/30">
           {currentMessages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto opacity-60">
-              <MentorIcon className={`w-16 h-16 ${currentMentor.textColor} mb-4`} />
-              <h3 className="text-xl font-black text-gray-900 mb-2">Start a conversation with {currentMentor.name}</h3>
-              <p className="text-sm text-gray-500 font-medium">Ask questions about mathematics, science, programming, or request help with essays and research.</p>
+            <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto opacity-60 px-4">
+              <MentorIcon className={`w-12 h-12 md:w-16 md:h-16 ${currentMentor.textColor} mb-4`} />
+              <h3 className="text-lg md:text-xl font-black text-gray-900 mb-2">Start a conversation with {currentMentor.name}</h3>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Ask questions about mathematics, science, programming, or request help with essays and research.</p>
             </div>
           ) : (
             currentMessages.map((msg, idx) => (
-              <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={idx} className={`flex gap-2.5 md:gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${currentMentor.color} text-white shadow-sm mt-1`}>
-                    <MentorIcon className="w-4 h-4" />
+                  <div className={`w-6.5 h-6.5 md:w-8 md:h-8 rounded-full flex items-center justify-center shrink-0 ${currentMentor.color} text-white shadow-sm mt-1`}>
+                    <MentorIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   </div>
                 )}
                 
-                <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
+                <div className={`max-w-[85%] md:max-w-[80%] rounded-2xl p-3 md:p-4 shadow-sm ${
                   msg.role === 'user' 
                     ? 'bg-gray-900 text-white rounded-tr-sm' 
                     : `bg-white border border-gray-100 rounded-tl-sm prose prose-sm max-w-none`
@@ -382,15 +385,15 @@ export default function AIMentors() {
                       className="float-right ml-2 mb-1 p-1 text-slate-400 hover:text-indigo-600 transition-colors bg-slate-50 hover:bg-indigo-50 rounded-lg"
                       title="Read aloud"
                     >
-                      <Volume2 className={`w-4 h-4 ${isSpeakingId === idx ? 'text-indigo-600 animate-pulse' : ''}`} />
+                      <Volume2 className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isSpeakingId === idx ? 'text-indigo-600 animate-pulse' : ''}`} />
                     </button>
                   )}
-                  <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
+                  <p className="whitespace-pre-wrap font-medium text-sm md:text-base leading-relaxed">{msg.content}</p>
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-1">
-                    <UserIcon className="w-4 h-4 text-gray-500" />
+                  <div className="w-6.5 h-6.5 md:w-8 md:h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-1">
+                    <UserIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-500" />
                   </div>
                 )}
               </div>
@@ -398,77 +401,77 @@ export default function AIMentors() {
           )}
 
           {isLoading && (
-            <div className="flex gap-4 justify-start">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${currentMentor.color} text-white shadow-sm mt-1`}>
-                <MentorIcon className="w-4 h-4" />
+            <div className="flex gap-2.5 md:gap-4 justify-start">
+              <div className={`w-6.5 h-6.5 md:w-8 md:h-8 rounded-full flex items-center justify-center shrink-0 ${currentMentor.color} text-white shadow-sm mt-1`}>
+                <MentorIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </div>
-              <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${currentMentor.color} animate-bounce`} style={{ animationDelay: '0ms' }}></div>
-                <div className={`w-2 h-2 rounded-full ${currentMentor.color} animate-bounce`} style={{ animationDelay: '150ms' }}></div>
-                <div className={`w-2 h-2 rounded-full ${currentMentor.color} animate-bounce`} style={{ animationDelay: '300ms' }}></div>
+              <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm p-3 md:p-4 shadow-sm flex items-center gap-1.5 md:gap-2">
+                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${currentMentor.color} animate-bounce`} style={{ animationDelay: '0ms' }}></div>
+                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${currentMentor.color} animate-bounce`} style={{ animationDelay: '150ms' }}></div>
+                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${currentMentor.color} animate-bounce`} style={{ animationDelay: '300ms' }}></div>
               </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-            <div className="p-4 bg-white border-t border-slate-200">
-              {attachedFileName && (
-                <div className="mb-2 text-sm text-indigo-600 flex items-center gap-2">
-                  <Paperclip className="w-4 h-4" /> 
-                  Attached: {attachedFileName} 
-                  <button onClick={() => { setAttachedFileName(''); setAttachedFileText(''); }} className="text-red-500 hover:text-red-700 ml-2 text-xs">Remove</button>
-                </div>
-              )}
-              <form onSubmit={handleSend} className="flex gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept=".txt,.pdf"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current.click()}
-                  className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                  title="Attach file (.pdf or .txt)"
-                >
-                  <Paperclip className="w-6 h-6" />
-                </button>
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={isListening ? "Listening..." : "Ask your mentor anything..."}
-                    className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-${currentMentor.color.split('-')[1]}-500 focus:border-transparent ${isListening ? 'bg-red-50 border-red-200 placeholder-red-400' : ''}`}
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={toggleListening}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${
-                      isListening ? 'text-red-500 bg-red-100 hover:bg-red-200 animate-pulse' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
-                    }`}
-                    title={isListening ? "Stop listening" : "Start speaking"}
-                  >
-                    {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                  </button>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isLoading || (!input.trim() && !attachedFileText)}
-                  className={`p-3 rounded-xl text-white transition-all ${
-                    isLoading || (!input.trim() && !attachedFileText)
-                      ? 'bg-slate-300 cursor-not-allowed'
-                      : `${currentMentor.color} hover:opacity-90 shadow-lg shadow-${currentMentor.color.split('-')[1]}-500/30`
-                  }`}
-                >
-                  <Send className="w-6 h-6" />
-                </button>
-              </form>
-          <p className="text-center text-[10px] text-gray-400 font-medium mt-3">
+        <div className="p-3 md:p-4 bg-white border-t border-slate-200">
+          {attachedFileName && (
+            <div className="mb-2 text-xs md:text-sm text-indigo-600 flex items-center gap-1.5 md:gap-2">
+              <Paperclip className="w-3.5 h-3.5 md:w-4 md:h-4" /> 
+              Attached: {attachedFileName} 
+              <button onClick={() => { setAttachedFileName(''); setAttachedFileText(''); }} className="text-red-500 hover:text-red-700 ml-2 text-xs">Remove</button>
+            </div>
+          )}
+          <form onSubmit={handleSend} className="flex gap-1.5 md:gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              accept=".txt,.pdf"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current.click()}
+              className="p-2.5 md:p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              title="Attach file (.pdf or .txt)"
+            >
+              <Paperclip className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <div className="flex-1 relative flex items-center">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={isListening ? "Listening..." : "Ask your mentor..."}
+                className={`w-full pl-3 pr-9 py-2.5 md:pl-4 md:pr-12 md:py-3 text-sm md:text-base rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-${currentMentor.color.split('-')[1]}-500 focus:border-transparent ${isListening ? 'bg-red-50 border-red-200 placeholder-red-400' : ''}`}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${
+                  isListening ? 'text-red-500 bg-red-100 hover:bg-red-200 animate-pulse' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                }`}
+                title={isListening ? "Stop listening" : "Start speaking"}
+              >
+                {isListening ? <MicOff className="w-4 h-4 md:w-5 md:h-5" /> : <Mic className="w-4 h-4 md:w-5 md:h-5" />}
+              </button>
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading || (!input.trim() && !attachedFileText)}
+              className={`p-2.5 md:p-3 rounded-xl text-white transition-all ${
+                isLoading || (!input.trim() && !attachedFileText)
+                  ? 'bg-slate-300 cursor-not-allowed'
+                  : `${currentMentor.color} hover:opacity-90 shadow-lg shadow-${currentMentor.color.split('-')[1]}-500/30`
+              }`}
+            >
+              <Send className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          </form>
+          <p className="text-center text-[9px] md:text-[10px] text-gray-400 font-medium mt-2.5 md:mt-3">
             AI Mentors can make mistakes. Consider verifying important information.
           </p>
         </div>
@@ -476,4 +479,5 @@ export default function AIMentors() {
       </div>
     </div>
   );
+}
 }
