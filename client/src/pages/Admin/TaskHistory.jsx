@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ClipboardList, ArrowLeft, RefreshCw, AlertCircle, ShieldAlert, Crown, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API = `http://${window.location.hostname}:5000/api`;
+const API = `http://${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 const ACTION_CONFIG = {

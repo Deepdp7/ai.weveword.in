@@ -42,7 +42,7 @@ export default function SplitPDF() {
     formData.append('ranges', ranges);
 
     try {
-      const response = await axios.post(`http://${window.location.hostname}:5000/api/pdf/split`, formData, {
+      const response = await axios.post(`http://${window.location.hostname}/api/pdf/split`, formData, {
         responseType: 'blob'
       });
       
@@ -154,7 +154,7 @@ export default function SplitPDF() {
                         const uploadData = new FormData();
                         uploadData.append('file', new File([resultBlob], 'Extracted_Waveword AI.pdf', { type: 'application/pdf' }));
                         uploadData.append('toolSource', 'pdf');
-                        await axios.post(`http://${window.location.hostname}:5000/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        await axios.post(`http://${window.location.hostname}/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                         alert('Saved to Cloud Library!');
                       } catch (e) { alert('Failed to save to cloud.'); }
                       setIsSavingCloud(false);

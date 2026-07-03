@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Coins, Zap, Crown, Star, Check, TrendingUp, History, PlayCircle, AlertCircle, Calculator } from 'lucide-react';
 
-const API = `http://${window.location.hostname}:5000/api`;
+const API = `http://${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 const PACK_ICONS = { mini: Coins, starter: Zap, popular: Star, pro: Crown, elite: Crown };

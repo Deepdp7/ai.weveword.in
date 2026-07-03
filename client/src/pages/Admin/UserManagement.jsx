@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Search, UserX, UserCheck, Crown, Trash2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, Shield, Coins, History, MessageSquare, Activity } from 'lucide-react';
 
-const API = `http://${window.location.hostname}:5000/api`;
+const API = `http://${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 const PLAN_BADGE = {

@@ -79,13 +79,30 @@ export default function MicroNoteMaker() {
   };
 
   const textareaRef = useRef(null);
-  
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
   React.useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = '297mm';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [note, fontSize]);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      const containerWidth = entries[0].contentRect.width;
+      const a4Width = 800; // approx width in px for 210mm + padding
+      if (containerWidth < a4Width) {
+        setScale((containerWidth - 32) / a4Width);
+      } else {
+        setScale(1);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
   
   const handleDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -98,23 +115,25 @@ export default function MicroNoteMaker() {
     try {
       let extractedText = '';
       
-      if (file.name.endsWith('.txt')) {
-        extractedText = await file.text();
-      } else if (file.name.endsWith('.pdf')) {
+      if (file.type === 'application/pdf') {
         extractedText = await extractTextFromPDF(file);
       } else if (file.name.endsWith('.docx')) {
         extractedText = await extractTextFromDOCX(file);
+      } else if (file.type === 'text/plain') {
+        extractedText = await file.text();
       } else {
-        throw new Error('Unsupported file type. Please upload TXT, PDF, or DOCX.');
+        throw new Error('Unsupported file type');
       }
-      
-      setNote(prev => prev + (prev.trim() ? '\n\n' : '') + extractedText.trim());
-      setSuccess(`Successfully extracted text from ${file.name}`);
-      
+
+      setNote((prev) => prev + (prev.trim() ? '\n\n' : '') + extractedText);
+      setSuccess('Text file imported!');
       setTimeout(() => setSuccess(''), 3000);
+      
+      const optimal = getAutoFontSize(extractedText);
+      setFontSize(optimal);
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to extract text from the file.');
+      setError('Failed to extract text. Make sure it is a valid PDF, DOCX, or TXT file.');
     } finally {
       setIsProcessing(false);
     }
@@ -131,72 +150,50 @@ export default function MicroNoteMaker() {
   });
 
   const exportToPDF = () => {
-    if (!note.trim()) return;
-    
-    // Create new PDF document
-    const doc = new jsPDF();
-    
-    // Add title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Micro Note", 20, 20);
-    
-    // Add content
-    doc.setFont("helvetica", "normal");
+    const doc = new jsPDF('p', 'mm', 'a4');
     doc.setFontSize(fontSize);
     
-    // Calculate line height in mm (approx 0.35mm per pt + spacing)
-    const lineHeight = fontSize * 0.4;
-    const splitText = doc.splitTextToSize(note, 190); // 10mm margins on A4 (210mm wide)
-    let y = 30;
+    const lines = doc.splitTextToSize(note, 190);
+    doc.text(lines, 10, 10);
     
-    for (let i = 0; i < splitText.length; i++) {
-      if (y > 285) { // 12mm bottom margin on A4 (297mm tall)
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(splitText[i], 10, y);
-      y += lineHeight;
-    }
-    
-    doc.save('MicroNote.pdf');
-    setSuccess('Exported as PDF!');
-    setTimeout(() => setSuccess(''), 3000);
+    doc.save('micro_note.pdf');
   };
 
   const exportToDOCX = async () => {
-    if (!note.trim()) return;
-    
-    const docxData = new Document({
+    const doc = new Document({
       sections: [{
-        properties: {},
-        children: note.split('\n').map(line => 
+        properties: {
+          page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } }
+        },
+        children: note.split('\n').map(text => 
           new Paragraph({
-            children: [new TextRun({ text: line, size: fontSize * 2 })], // DOCX size is in half-points
+            children: [new TextRun({ text, size: fontSize * 2 })] // size in half-points
           })
-        ),
-      }],
+        )
+      }]
     });
-    
-    const blob = await Packer.toBlob(docxData);
-    downloadBlob(blob, 'MicroNote.docx');
-    
-    setSuccess('Exported as DOCX!');
-    setTimeout(() => setSuccess(''), 3000);
+    const blob = await Packer.toBlob(doc);
+    downloadBlob(blob, 'micro_note.docx');
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 p-4">
       
       {/* Header */}
-      <div className="mb-10 text-center space-y-4">
-        <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl shadow-indigo-200/50 mb-2">
-          <FileText className="w-8 h-8 text-white" />
+      <div className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 rounded-3xl p-8 sm:p-12 shadow-xl shadow-indigo-100/50 border border-indigo-100/50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <FileText className="w-48 h-48 text-indigo-900 rotate-12" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">
+        
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-indigo-600 font-bold text-sm shadow-sm border border-indigo-100 mb-6">
+          <Sparkles className="w-4 h-4" />
+          The Ultimate Cheat Sheet Generator
+        </div>
+        
+        <h1 className="text-4xl sm:text-5xl font-black text-gray-900 mb-6 tracking-tight">
           Micro <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Note Maker</span>
         </h1>
-        <p className="text-lg text-gray-500 font-medium max-w-2xl mx-auto">
+        <p className="text-gray-600 text-lg max-w-2xl font-medium leading-relaxed">
           A distraction-free notepad. Type, dictate with your voice, or drop a file to extract text. Export instantly to PDF or DOCX.
         </p>
       </div>
@@ -227,28 +224,29 @@ export default function MicroNoteMaker() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-auto bg-gray-200/80 p-4 sm:p-8 custom-scrollbar relative flex justify-center">
-              <textarea
-                ref={textareaRef}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Start typing your note here... Use the voice dictation button above, or drag and drop a document on the right to extract its text!"
-                className="bg-white shadow-md mx-auto text-gray-900 resize-none outline-none focus:ring-0 block shrink-0"
-                style={{ 
-                  zoom: typeof window !== 'undefined' && window.innerWidth < 640 ? 0.42 : typeof window !== 'undefined' && window.innerWidth < 1024 ? 0.7 : 1,
-                  width: '210mm', 
-                  minHeight: '297mm', 
-                  padding: '10mm',
-                  fontSize: `${fontSize}pt`,
-                  fontFamily: 'Helvetica, Arial, sans-serif',
-                  whiteSpace: 'pre-wrap',
-                  wordWrap: 'break-word',
-                  backgroundImage: 'linear-gradient(to bottom, transparent calc(297mm - 2px), #ef4444 calc(297mm - 2px), #ef4444 297mm)',
-                  backgroundSize: '100% 297mm',
-                  lineHeight: '1.4',
-                  overflow: 'hidden'
-                }}
-              />
+            <div ref={containerRef} className="flex-1 overflow-auto bg-gray-200/80 p-4 sm:p-8 custom-scrollbar relative flex justify-center items-start">
+              <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.1s' }}>
+                <textarea
+                  ref={textareaRef}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Start typing your note here... Use the voice dictation button above, or drag and drop a document on the right to extract its text!"
+                  className="bg-white shadow-md mx-auto text-gray-900 resize-none outline-none focus:ring-0 block shrink-0"
+                  style={{ 
+                    width: '210mm', 
+                    minHeight: '297mm', 
+                    padding: '10mm',
+                    fontSize: `${fontSize}pt`,
+                    fontFamily: 'Helvetica, Arial, sans-serif',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    backgroundImage: 'linear-gradient(to bottom, transparent calc(297mm - 2px), #ef4444 calc(297mm - 2px), #ef4444 297mm)',
+                    backgroundSize: '100% 297mm',
+                    lineHeight: '1.4',
+                    overflow: 'hidden'
+                  }}
+                />
+              </div>
               
               {/* Word count */}
               <div className="absolute bottom-6 left-6 text-xs font-bold text-gray-500 bg-white/90 shadow-sm px-3 py-1.5 rounded-lg border border-gray-200 backdrop-blur-sm z-10 pointer-events-none">

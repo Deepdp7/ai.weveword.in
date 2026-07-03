@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Search, Folder, File, Image as ImageIcon, FileText, Video, Download, Trash2, Share2, Filter, MoreVertical, Upload, RefreshCw, AlertCircle, Lock, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API = `http://${window.location.hostname}:5000/api`;
+const API = `http://${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 const FOLDERS = [

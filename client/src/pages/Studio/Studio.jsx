@@ -26,7 +26,7 @@ import confetti from "canvas-confetti";
 import { jsPDF } from "jspdf";
 import VoiceDictationButton from "../../components/VoiceDictationButton";
 
-const API_BASE = `http://${window.location.hostname}:5000/api`;
+const API_BASE = `http://${window.location.hostname}/api`;
 
 const FONTS = [
   { name: "Dancing Script", family: "'Dancing Script', cursive" },
@@ -338,7 +338,7 @@ export default function Studio() {
 
       await document.fonts.ready;
 
-      const html2canvas = (await import("html2canvas")).default;
+      const htmlToImage = await import("html-to-image");
 
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -354,42 +354,22 @@ export default function Studio() {
         addToast(`Rendering page ${i + 1} of ${pageElements.length}...`, "loading");
         await new Promise(r => setTimeout(r, 200));
 
-        const canvas = await html2canvas(pageElements[i], {
-          scale: 1.5,
-          useCORS: true,
-          allowTaint: true,
+        const imgData = await htmlToImage.toJpeg(pageElements[i], {
+          quality: 0.85,
+          pixelRatio: 1.5,
           backgroundColor: '#ffffff',
-          logging: false,
-          imageTimeout: 15000,
-          onclone: (clonedDoc) => {
-            try {
-              // Remove style tags with unsupported CSS color spaces
-              Array.from(clonedDoc.getElementsByTagName('style')).forEach(st => {
-                const txt = st.innerHTML || '';
-                if (txt.includes('oklch') || txt.includes('oklab') || txt.includes('color(')) {
-                  st.remove();
-                }
-              });
-            } catch (e) {
-              console.warn('Style sanitization skipped', e);
-            }
-            const fix = clonedDoc.createElement('style');
-            fix.innerHTML = `
-              * { box-sizing: border-box; }
-              .pdf-export-page { background: white !important; box-shadow: none !important; margin: 0 !important; }
-            `;
-            clonedDoc.head.appendChild(fix);
+          style: {
+            margin: '0',
+            boxShadow: 'none',
+            background: 'white'
           }
         });
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.85);
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
         if (i > 0) pdf.addPage();
         pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
 
-        // Free memory
-        canvas.width = 0;
-        canvas.height = 0;
         await new Promise(r => setTimeout(r, 300));
       }
 

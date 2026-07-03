@@ -3,7 +3,7 @@ import { Play, Pause, Download, Video, Music, Settings, Type, Loader2, Sparkles,
 import VoiceDictationButton from '../../components/VoiceDictationButton';
 import axios from 'axios';
 
-const API_BASE = `http://${window.location.hostname}:5000/api`;
+const API_BASE = `http://${window.location.hostname}/api`;
 const API = `${API_BASE}/animator`;
 axios.defaults.withCredentials = true;
 

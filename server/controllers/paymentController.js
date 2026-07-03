@@ -7,6 +7,9 @@ import Notification from '../models/Notification.js';
 
 let razorpayInstance = null;
 const getRazorpay = () => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay keys are missing in .env');
+  }
   if (!razorpayInstance) {
     razorpayInstance = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
@@ -49,9 +52,9 @@ export const createOrder = async (req, res) => {
       receipt: `rcpt_${req.user._id.toString().slice(-6)}_${Date.now()}`,
       notes: {
         userId: req.user._id.toString(),
-        packId,
-        type,
-        credits: pack.credits,
+        packId: String(packId),
+        type: String(type),
+        credits: String(pack.credits),
       },
     };
 
@@ -80,7 +83,11 @@ export const createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ status: 'error', message: 'Could not create payment order.' });
+    if (error.message && error.message.includes('Razorpay keys are missing')) {
+      return res.status(400).json({ status: 'error', message: 'Payment gateway is not configured (Missing Razorpay Keys).' });
+    }
+    const errorDetail = error.error ? error.error.description : (error.message || 'Unknown error');
+    res.status(500).json({ status: 'error', message: 'Could not create payment order: ' + errorDetail });
   }
 };
 

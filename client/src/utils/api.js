@@ -4,7 +4,9 @@ const getApiBase = () => {
   const savedUrl = localStorage.getItem('waveword-ai_api_url');
   if (savedUrl) return savedUrl;
 
-  return import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`;
+  // Use the current protocol (http or https) dynamically to prevent Mixed Content errors
+  const protocol = window.location.protocol;
+  return import.meta.env.VITE_API_URL || `${protocol}//${window.location.hostname}/api`;
 };
 
 export const API_BASE = getApiBase();

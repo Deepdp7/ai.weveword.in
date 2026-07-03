@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
 
-const API = `http://${window.location.hostname}:5000/api`;
+const API = `http://${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 /* ─────────────────────── TEMPLATE DATA ─────────────────────── */
