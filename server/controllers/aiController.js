@@ -239,7 +239,7 @@ export const handleChat = async (req, res) => {
   const fetchFromPollinations = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for slower responses
       
       const response = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
