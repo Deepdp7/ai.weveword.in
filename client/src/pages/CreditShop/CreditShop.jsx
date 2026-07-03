@@ -33,18 +33,55 @@ export default function CreditShop() {
   const [calcInputs, setCalcInputs] = useState({ advanced: 0, images: 0, standard: 0, video: 0 });
   const totalEstimatedCredits = (calcInputs.advanced * 10) + (calcInputs.images * 15) + (calcInputs.standard * 1) + (calcInputs.video * 20);
 
+  const [adConfig, setAdConfig] = useState({ adsenseRewardedSlot: '', monetagZoneId: '', monetagScriptUrl: '', adsterraDirectLink: '' });
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [balRes, packsRes, txRes] = await Promise.all([
+        const [balRes, packsRes, txRes, adRes] = await Promise.all([
           axios.get(`${API}/payments/credits/balance`),
           axios.get(`${API}/payments/packs`),
           axios.get(`${API}/payments/transactions`),
+          axios.get(`${API}/payments/ad-config`),
         ]);
         setBalance({ credits: balRes.data.credits, plan: balRes.data.plan });
         setPacks({ creditPacks: packsRes.data.creditPacks, planPacks: packsRes.data.planPacks });
         setTransactions(txRes.data.transactions || []);
+        
+        const config = adRes.data || {};
+        setAdConfig(config);
+
+        // Dynamically load Ad Networks based on server configuration
+        if (config.adsenseRewardedSlot) {
+          const script = document.createElement('script');
+          script.src = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
+          script.async = true;
+          document.head.appendChild(script);
+
+          window.googletag = window.googletag || { cmd: [] };
+          window.googletag.cmd.push(() => {
+            const rewardedSlot = window.googletag.defineOutOfPageSlot(
+              config.adsenseRewardedSlot,
+              window.googletag.enums.OutOfPageFormat.REWARDED
+            );
+            if (rewardedSlot) {
+              rewardedSlot.addService(window.googletag.pubads());
+              window.googletag.pubads().addEventListener('rewardedSlotGranted', (event) => {
+                handleAdReward();
+              });
+              window.googletag.enableServices();
+            }
+          });
+        }
+
+        if (config.monetagZoneId) {
+          const script = document.createElement('script');
+          script.src = config.monetagScriptUrl || 'https://alwingulla.com/88/tag.min.js';
+          script.dataset.zone = config.monetagZoneId;
+          script.async = true;
+          document.head.appendChild(script);
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Could not load credit shop.');
       } finally {
@@ -52,37 +89,6 @@ export default function CreditShop() {
       }
     };
     fetchAll();
-
-    // Dynamically load Ad Networks based on what variables are configured
-    if (import.meta.env.VITE_ADSENSE_REWARDED_SLOT) {
-      const script = document.createElement('script');
-      script.src = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
-      script.async = true;
-      document.head.appendChild(script);
-
-      window.googletag = window.googletag || { cmd: [] };
-      window.googletag.cmd.push(() => {
-        const rewardedSlot = window.googletag.defineOutOfPageSlot(
-          import.meta.env.VITE_ADSENSE_REWARDED_SLOT,
-          window.googletag.enums.OutOfPageFormat.REWARDED
-        );
-        if (rewardedSlot) {
-          rewardedSlot.addService(window.googletag.pubads());
-          window.googletag.pubads().addEventListener('rewardedSlotGranted', (event) => {
-            handleAdReward();
-          });
-          window.googletag.enableServices();
-        }
-      });
-    }
-
-    if (import.meta.env.VITE_MONETAG_ZONE_ID) {
-      const script = document.createElement('script');
-      script.src = import.meta.env.VITE_MONETAG_SCRIPT_URL || 'https://alwingulla.com/88/tag.min.js';
-      script.dataset.zone = import.meta.env.VITE_MONETAG_ZONE_ID;
-      script.async = true;
-      document.head.appendChild(script);
-    }
   }, []);
 
   const handleBuy = async (packId, type) => {
@@ -160,7 +166,7 @@ export default function CreditShop() {
   };
 
   const playDirectLinkAd = () => {
-    const directLink = import.meta.env.VITE_ADSTERRA_DIRECT_LINK || 'https://google.com';
+    const directLink = adConfig.adsterraDirectLink || 'https://google.com';
     window.open(directLink, '_blank');
     setIsAdPlaying(true);
     setAdTimeLeft(15);
@@ -177,7 +183,7 @@ export default function CreditShop() {
 
   const fallbackAd = (failedNetwork) => {
     console.warn(`[Ad System] ${failedNetwork} failed to load. Trying fallback...`);
-    const hasAdsterra = !!import.meta.env.VITE_ADSTERRA_DIRECT_LINK;
+    const hasAdsterra = !!adConfig.adsterraDirectLink;
     if (failedNetwork !== 'adsterra' && hasAdsterra) {
       setPlayingAdType('adsterra');
       playDirectLinkAd();
@@ -191,7 +197,7 @@ export default function CreditShop() {
     if (network === 'adsense') {
       if (window.googletag) {
         window.googletag.cmd.push(() => {
-          window.googletag.display(import.meta.env.VITE_ADSENSE_REWARDED_SLOT);
+          window.googletag.display(adConfig.adsenseRewardedSlot);
         });
       } else {
         fallbackAd('adsense');
@@ -210,9 +216,9 @@ export default function CreditShop() {
   };
 
   const startAd = () => {
-    const hasAdSense = !!import.meta.env.VITE_ADSENSE_REWARDED_SLOT;
-    const hasMonetag = !!import.meta.env.VITE_MONETAG_ZONE_ID;
-    const hasAdsterra = !!import.meta.env.VITE_ADSTERRA_DIRECT_LINK;
+    const hasAdSense = !!adConfig.adsenseRewardedSlot;
+    const hasMonetag = !!adConfig.monetagZoneId;
+    const hasAdsterra = !!adConfig.adsterraDirectLink;
 
     // Build list of active ad networks
     const activeNetworks = [];

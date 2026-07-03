@@ -37,4 +37,15 @@ router.post('/credits/deduct', deductCredits);
 // POST /api/payments/credits/ad-reward
 router.post('/credits/ad-reward', awardAdCredits);
 
+// GET /api/payments/ad-config
+router.get('/ad-config', (req, res) => {
+  res.json({
+    status: 'success',
+    adsenseRewardedSlot: process.env.VITE_ADSENSE_REWARDED_SLOT || process.env.ADSENSE_REWARDED_SLOT || '',
+    monetagZoneId: process.env.VITE_MONETAG_ZONE_ID || process.env.MONETAG_ZONE_ID || '',
+    monetagScriptUrl: process.env.VITE_MONETAG_SCRIPT_URL || process.env.MONETAG_SCRIPT_URL || '',
+    adsterraDirectLink: process.env.VITE_ADSTERRA_DIRECT_LINK || process.env.ADSTERRA_DIRECT_LINK || ''
+  });
+});
+
 export default router;
