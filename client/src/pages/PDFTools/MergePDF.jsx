@@ -54,7 +54,7 @@ export default function MergePDF() {
     });
 
     try {
-      const response = await axios.post(`http://${window.location.hostname}/api/pdf/merge`, formData, {
+      const response = await axios.post(`${window.location.protocol}//${window.location.hostname}/api/pdf/merge`, formData, {
         responseType: 'blob' // important for file download
       });
       
@@ -141,7 +141,7 @@ export default function MergePDF() {
                       const uploadData = new FormData();
                       uploadData.append('file', new File([resultBlob], 'Merged_Waveword AI.pdf', { type: 'application/pdf' }));
                       uploadData.append('toolSource', 'pdf');
-                      await axios.post(`http://${window.location.hostname}/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      await axios.post(`${window.location.protocol}//${window.location.hostname}/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       alert('Saved to Cloud Library!');
                     } catch (e) { alert('Failed to save to cloud.'); }
                     setIsSavingCloud(false);

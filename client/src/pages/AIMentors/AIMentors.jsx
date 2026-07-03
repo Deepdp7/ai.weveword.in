@@ -157,7 +157,7 @@ export default function AIMentors() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const { data } = await axios.get(`http://${window.location.hostname}/api/ai/history/${activeMentor}`, {
+        const { data } = await axios.get(`${window.location.protocol}//${window.location.hostname}/api/ai/history/${activeMentor}`, {
           withCredentials: true
         });
         
@@ -200,7 +200,7 @@ export default function AIMentors() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`http://${window.location.hostname}/api/ai/chat`, {
+      const response = await axios.post(`${window.location.protocol}//${window.location.hostname}/api/ai/chat`, {
         messages: updatedMessages,
         mentor: activeMentor,
         useCredit
@@ -233,7 +233,7 @@ export default function AIMentors() {
 
   const clearChat = async () => {
     try {
-      await axios.delete(`http://${window.location.hostname}/api/ai/history/${activeMentor}`, {
+      await axios.delete(`${window.location.protocol}//${window.location.hostname}/api/ai/history/${activeMentor}`, {
         withCredentials: true
       });
       setMessages(prev => ({ ...prev, [activeMentor]: [] }));

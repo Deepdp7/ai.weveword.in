@@ -27,7 +27,7 @@ import axios from 'axios';
 import confetti from 'canvas-confetti';
 import VoiceDictationButton from '../../components/VoiceDictationButton';
 
-const API = `http://${window.location.hostname}/api`;
+const API = `${window.location.protocol}//${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 export default function ProjectBuilder() {

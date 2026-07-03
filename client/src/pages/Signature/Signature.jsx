@@ -4,7 +4,7 @@ import { PenTool, Type, Download, Trash2, CheckCircle2, Save, Loader2, Image as 
 import html2canvas from 'html2canvas';
 import axios from 'axios';
 
-const API = `http://${window.location.hostname}/api`;
+const API = `${window.location.protocol}//${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 const FONTS = [

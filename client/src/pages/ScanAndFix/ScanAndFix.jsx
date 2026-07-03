@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { Image as ImageIcon, UploadCloud, RefreshCw, Download, Scan, Loader2, Sparkles, CheckCircle2, SlidersHorizontal, ArrowRight, Cloud, Zap } from 'lucide-react';
 import axios from 'axios';
 
-const API = `http://${window.location.hostname}/api/scan-fix`;
+const API = `${window.location.protocol}//${window.location.hostname}/api/scan-fix`;
 axios.defaults.withCredentials = true;
 
 export default function ScanAndFix() {

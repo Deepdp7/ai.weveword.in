@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Upload, FileText, Loader2, Download, CheckCircle2, ArrowLeft, AlertCircle, Cloud } from 'lucide-react';
 import axios from 'axios';
 
-const API = `http://${window.location.hostname}/api`;
+const API = `${window.location.protocol}//${window.location.hostname}/api`;
 axios.defaults.withCredentials = true;
 
 const TOOL_CONFIG = {
@@ -147,7 +147,7 @@ export default function GenericConverter() {
                       const uploadData = new FormData();
                       uploadData.append('file', new File([result.blob], result.fileName, { type: 'application/pdf' }));
                       uploadData.append('toolSource', 'pdf');
-                      await axios.post(`http://${window.location.hostname}/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                      await axios.post(`${window.location.protocol}//${window.location.hostname}/api/files/upload`, uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       alert('Saved to Cloud Library!');
                     } catch (e) { alert('Failed to save to cloud.'); }
                     setIsSavingCloud(false);

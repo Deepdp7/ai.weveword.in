@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, KeyRound, CheckCircle2, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
-const API = `http://${window.location.hostname}/api`;
+const API = `${window.location.protocol}//${window.location.hostname}/api`;
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP & New Password, 3: Success

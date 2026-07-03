@@ -18,7 +18,7 @@ export default function Navbar({ onMenuClick }) {
     
     const fetchCredits = async () => {
       try {
-        const { data } = await axios.get(`http://${window.location.hostname}/api/payments/credits/balance`, { withCredentials: true });
+        const { data } = await axios.get(`${window.location.protocol}//${window.location.hostname}/api/payments/credits/balance`, { withCredentials: true });
         setCredits(data.credits);
       } catch (err) {
         console.error('Failed to fetch credits', err);
@@ -27,7 +27,7 @@ export default function Navbar({ onMenuClick }) {
 
     const fetchNotifications = async () => {
       try {
-        const { data } = await axios.get(`http://${window.location.hostname}/api/notifications`, { withCredentials: true });
+        const { data } = await axios.get(`${window.location.protocol}//${window.location.hostname}/api/notifications`, { withCredentials: true });
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
       } catch (err) {
@@ -62,7 +62,7 @@ export default function Navbar({ onMenuClick }) {
     if (!showNotifications && unreadCount > 0) {
       // Mark all as read when opening
       try {
-        await axios.put(`http://${window.location.hostname}/api/notifications/all/read`, {}, { withCredentials: true });
+        await axios.put(`${window.location.protocol}//${window.location.hostname}/api/notifications/all/read`, {}, { withCredentials: true });
         setUnreadCount(0);
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       } catch (err) {

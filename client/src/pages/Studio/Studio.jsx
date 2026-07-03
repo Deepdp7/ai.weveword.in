@@ -26,7 +26,7 @@ import confetti from "canvas-confetti";
 import { jsPDF } from "jspdf";
 import VoiceDictationButton from "../../components/VoiceDictationButton";
 
-const API_BASE = `http://${window.location.hostname}/api`;
+const API_BASE = `${window.location.protocol}//${window.location.hostname}/api`;
 
 const FONTS = [
   { name: "Dancing Script", family: "'Dancing Script', cursive" },
