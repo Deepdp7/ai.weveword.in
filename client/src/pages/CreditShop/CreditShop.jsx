@@ -39,11 +39,13 @@ const AdsterraBanner = () => {
   }, []);
 
   return (
-    <div className="flex justify-center my-4 overflow-hidden">
+    <div className="flex justify-center my-4 overflow-hidden select-none">
       <div 
         ref={bannerRef}
-        className="w-[468px] h-[60px] flex items-center justify-center overflow-hidden"
-      />
+        className="w-[468px] h-[60px] bg-gray-50 border border-gray-200 border-dashed rounded-lg flex items-center justify-center overflow-hidden text-[10px] text-gray-400 relative"
+      >
+        <span className="absolute pointer-events-none uppercase tracking-wider font-bold">Sponsor Ad (Disable AdBlocker if blank)</span>
+      </div>
     </div>
   );
 };
