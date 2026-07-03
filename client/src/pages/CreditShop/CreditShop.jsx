@@ -27,6 +27,7 @@ export default function CreditShop() {
   const [isAdPlaying, setIsAdPlaying] = useState(false);
   const [adTimeLeft, setAdTimeLeft] = useState(15);
   const [adRewardReady, setAdRewardReady] = useState(false);
+  const [playingAdType, setPlayingAdType] = useState('demo'); // 'adsense' | 'monetag' | 'adsterra' | 'demo'
 
   // Calculator State
   const [calcInputs, setCalcInputs] = useState({ advanced: 0, images: 0, standard: 0, video: 0 });
@@ -52,9 +53,8 @@ export default function CreditShop() {
     };
     fetchAll();
 
-    // Dynamically load Ad Networks based on VITE_AD_NETWORK environment variable
-    const adNetwork = import.meta.env.VITE_AD_NETWORK;
-    if (adNetwork === 'adsense') {
+    // Dynamically load Ad Networks based on what variables are configured
+    if (import.meta.env.VITE_ADSENSE_REWARDED_SLOT) {
       const script = document.createElement('script');
       script.src = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
       script.async = true;
@@ -63,7 +63,7 @@ export default function CreditShop() {
       window.googletag = window.googletag || { cmd: [] };
       window.googletag.cmd.push(() => {
         const rewardedSlot = window.googletag.defineOutOfPageSlot(
-          import.meta.env.VITE_ADSENSE_REWARDED_SLOT || '/1234567/rewarded',
+          import.meta.env.VITE_ADSENSE_REWARDED_SLOT,
           window.googletag.enums.OutOfPageFormat.REWARDED
         );
         if (rewardedSlot) {
@@ -74,10 +74,12 @@ export default function CreditShop() {
           window.googletag.enableServices();
         }
       });
-    } else if (adNetwork === 'monetag') {
+    }
+
+    if (import.meta.env.VITE_MONETAG_ZONE_ID) {
       const script = document.createElement('script');
       script.src = import.meta.env.VITE_MONETAG_SCRIPT_URL || 'https://alwingulla.com/88/tag.min.js';
-      script.dataset.zone = import.meta.env.VITE_MONETAG_ZONE_ID || '12345';
+      script.dataset.zone = import.meta.env.VITE_MONETAG_ZONE_ID;
       script.async = true;
       document.head.appendChild(script);
     }
@@ -144,60 +146,92 @@ export default function CreditShop() {
     }
   };
 
-  const startAd = () => {
-    const adNetwork = import.meta.env.VITE_AD_NETWORK;
+  const startTimer = () => {
+    const timer = setInterval(() => {
+      setAdTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setAdRewardReady(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
-    if (adNetwork === 'adsense') {
+  const playDirectLinkAd = () => {
+    const directLink = import.meta.env.VITE_ADSTERRA_DIRECT_LINK || 'https://google.com';
+    window.open(directLink, '_blank');
+    setIsAdPlaying(true);
+    setAdTimeLeft(15);
+    setAdRewardReady(false);
+    startTimer();
+  };
+
+  const playDemoAd = () => {
+    setIsAdPlaying(true);
+    setAdTimeLeft(15);
+    setAdRewardReady(false);
+    startTimer();
+  };
+
+  const fallbackAd = (failedNetwork) => {
+    console.warn(`[Ad System] ${failedNetwork} failed to load. Trying fallback...`);
+    const hasAdsterra = !!import.meta.env.VITE_ADSTERRA_DIRECT_LINK;
+    if (failedNetwork !== 'adsterra' && hasAdsterra) {
+      setPlayingAdType('adsterra');
+      playDirectLinkAd();
+    } else {
+      setPlayingAdType('demo');
+      playDemoAd();
+    }
+  };
+
+  const runAdNetwork = (network) => {
+    if (network === 'adsense') {
       if (window.googletag) {
         window.googletag.cmd.push(() => {
-          window.googletag.display(import.meta.env.VITE_ADSENSE_REWARDED_SLOT || '/1234567/rewarded');
+          window.googletag.display(import.meta.env.VITE_ADSENSE_REWARDED_SLOT);
         });
       } else {
-        alert("Ad blocker is active or Google Ads failed to load.");
+        fallbackAd('adsense');
       }
-    } else if (adNetwork === 'monetag') {
+    } else if (network === 'monetag') {
       if (window.showMonetagRewardedAd) {
         window.showMonetagRewardedAd(() => {
           handleAdReward();
         });
       } else {
-        alert("Ad blocker is active or Monetag failed to load.");
+        fallbackAd('monetag');
       }
-    } else if (adNetwork === 'adsterra') {
-      const directLink = import.meta.env.VITE_ADSTERRA_DIRECT_LINK || 'https://google.com';
-      window.open(directLink, '_blank');
-
-      setIsAdPlaying(true);
-      setAdTimeLeft(15);
-      setAdRewardReady(false);
-      
-      const timer = setInterval(() => {
-        setAdTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setAdRewardReady(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      // Fallback/Demo simulated ad player
-      setIsAdPlaying(true);
-      setAdTimeLeft(15);
-      setAdRewardReady(false);
-      
-      const timer = setInterval(() => {
-        setAdTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setAdRewardReady(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    } else if (network === 'adsterra') {
+      playDirectLinkAd();
     }
+  };
+
+  const startAd = () => {
+    const hasAdSense = !!import.meta.env.VITE_ADSENSE_REWARDED_SLOT;
+    const hasMonetag = !!import.meta.env.VITE_MONETAG_ZONE_ID;
+    const hasAdsterra = !!import.meta.env.VITE_ADSTERRA_DIRECT_LINK;
+
+    // Build list of active ad networks
+    const activeNetworks = [];
+    if (hasAdSense) activeNetworks.push('adsense');
+    if (hasMonetag) activeNetworks.push('monetag');
+    if (hasAdsterra) activeNetworks.push('adsterra');
+
+    if (activeNetworks.length === 0) {
+      setPlayingAdType('demo');
+      playDemoAd();
+      return;
+    }
+
+    // Dynamic rotation between active networks
+    const randomIndex = Math.floor(Math.random() * activeNetworks.length);
+    const chosenNetwork = activeNetworks[randomIndex];
+    
+    setPlayingAdType(chosenNetwork);
+    runAdNetwork(chosenNetwork);
   };
 
   const handleAdReward = async () => {
