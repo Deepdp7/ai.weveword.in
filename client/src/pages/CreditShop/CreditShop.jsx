@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Coins, Zap, Crown, Star, Check, TrendingUp, History, PlayCircle, AlertCircle, Calculator } from 'lucide-react';
 
@@ -15,39 +15,34 @@ const PLAN_COLORS = {
 const formatAmount = (paise) => `₹${(paise / 100).toFixed(0)}`;
 
 const AdsterraBanner = () => {
-  const iframeSource = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; background: transparent; }
-        </style>
-      </head>
-      <body>
-        <script type="text/javascript">
-          atOptions = {
-            'key' : 'e4f2d2adff35a81bfa15194698f7d390',
-            'format' : 'iframe',
-            'height' : 60,
-            'width' : 468,
-            'params' : {}
-          };
-        </script>
-        <script type="text/javascript" src="https://www.highperformanceformat.com/e4f2d2adff35a81bfa15194698f7d390/invoke.js"></script>
-      </body>
-    </html>
-  `;
+  const bannerRef = useRef(null);
+
+  useEffect(() => {
+    if (bannerRef.current && !bannerRef.current.firstChild) {
+      const atOptions = {
+        'key' : 'e4f2d2adff35a81bfa15194698f7d390',
+        'format' : 'iframe',
+        'height' : 60,
+        'width' : 468,
+        'params' : {}
+      };
+      const conf = document.createElement('script');
+      conf.innerHTML = `atOptions = ${JSON.stringify(atOptions)}`;
+
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = 'https://www.highperformanceformat.com/e4f2d2adff35a81bfa15194698f7d390/invoke.js';
+
+      bannerRef.current.appendChild(conf);
+      bannerRef.current.appendChild(script);
+    }
+  }, []);
 
   return (
     <div className="flex justify-center my-4 overflow-hidden">
-      <iframe
-        title="Adsterra Banner"
-        srcDoc={iframeSource}
-        width="468"
-        height="60"
-        scrolling="no"
-        frameBorder="0"
-        style={{ border: 'none', overflow: 'hidden' }}
+      <div 
+        ref={bannerRef}
+        className="w-[468px] h-[60px] flex items-center justify-center overflow-hidden"
       />
     </div>
   );
