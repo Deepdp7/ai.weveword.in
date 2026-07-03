@@ -51,6 +51,36 @@ export default function CreditShop() {
       }
     };
     fetchAll();
+
+    // Dynamically load Ad Networks based on VITE_AD_NETWORK environment variable
+    const adNetwork = import.meta.env.VITE_AD_NETWORK;
+    if (adNetwork === 'adsense') {
+      const script = document.createElement('script');
+      script.src = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
+      script.async = true;
+      document.head.appendChild(script);
+
+      window.googletag = window.googletag || { cmd: [] };
+      window.googletag.cmd.push(() => {
+        const rewardedSlot = window.googletag.defineOutOfPageSlot(
+          import.meta.env.VITE_ADSENSE_REWARDED_SLOT || '/1234567/rewarded',
+          window.googletag.enums.OutOfPageFormat.REWARDED
+        );
+        if (rewardedSlot) {
+          rewardedSlot.addService(window.googletag.pubads());
+          window.googletag.pubads().addEventListener('rewardedSlotGranted', (event) => {
+            handleAdReward();
+          });
+          window.googletag.enableServices();
+        }
+      });
+    } else if (adNetwork === 'monetag') {
+      const script = document.createElement('script');
+      script.src = import.meta.env.VITE_MONETAG_SCRIPT_URL || 'https://alwingulla.com/88/tag.min.js';
+      script.dataset.zone = import.meta.env.VITE_MONETAG_ZONE_ID || '12345';
+      script.async = true;
+      document.head.appendChild(script);
+    }
   }, []);
 
   const handleBuy = async (packId, type) => {
@@ -115,21 +145,59 @@ export default function CreditShop() {
   };
 
   const startAd = () => {
-    setIsAdPlaying(true);
-    setAdTimeLeft(15);
-    setAdRewardReady(false);
-    
-    // We use a simple interval for the countdown
-    const timer = setInterval(() => {
-      setAdTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setAdRewardReady(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const adNetwork = import.meta.env.VITE_AD_NETWORK;
+
+    if (adNetwork === 'adsense') {
+      if (window.googletag) {
+        window.googletag.cmd.push(() => {
+          window.googletag.display(import.meta.env.VITE_ADSENSE_REWARDED_SLOT || '/1234567/rewarded');
+        });
+      } else {
+        alert("Ad blocker is active or Google Ads failed to load.");
+      }
+    } else if (adNetwork === 'monetag') {
+      if (window.showMonetagRewardedAd) {
+        window.showMonetagRewardedAd(() => {
+          handleAdReward();
+        });
+      } else {
+        alert("Ad blocker is active or Monetag failed to load.");
+      }
+    } else if (adNetwork === 'adsterra') {
+      const directLink = import.meta.env.VITE_ADSTERRA_DIRECT_LINK || 'https://google.com';
+      window.open(directLink, '_blank');
+
+      setIsAdPlaying(true);
+      setAdTimeLeft(15);
+      setAdRewardReady(false);
+      
+      const timer = setInterval(() => {
+        setAdTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setAdRewardReady(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      // Fallback/Demo simulated ad player
+      setIsAdPlaying(true);
+      setAdTimeLeft(15);
+      setAdRewardReady(false);
+      
+      const timer = setInterval(() => {
+        setAdTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setAdRewardReady(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
   };
 
   const handleAdReward = async () => {
@@ -409,69 +477,76 @@ export default function CreditShop() {
         </div>
       )}
 
-      {/* ── Ad Player Modal ── */}
+      {/* ── Ad Player Modal / Direct Link Countdown ── */}
       {isAdPlaying && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-300">
-          {/* Ad Header Overlay */}
-          <div className="absolute top-0 inset-x-0 p-4 sm:p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
-            <div className="bg-yellow-500 text-black font-bold text-xs px-2 py-1 rounded">SPONSORED</div>
+        <div className="fixed inset-0 z-50 bg-black flex flex-col justify-center items-center p-6 animate-in fade-in duration-300">
+          <div className="max-w-md w-full text-center space-y-6 z-10">
+            <div className="bg-yellow-500 text-black font-extrabold text-xs px-3 py-1 rounded w-fit mx-auto">SPONSORED AD</div>
             
+            {import.meta.env.VITE_AD_NETWORK === 'adsterra' ? (
+              <div className="text-white space-y-4">
+                <h3 className="text-2xl font-bold">Ad Opened In New Tab</h3>
+                <p className="text-gray-400 text-sm">Please check the new tab and wait for the countdown to complete to receive your 5 free credits.</p>
+              </div>
+            ) : (
+              <div className="text-white space-y-4">
+                <h3 className="text-2xl font-bold">Sponsor Video Ad</h3>
+                <p className="text-gray-400 text-sm">Watch the video to get your reward.</p>
+              </div>
+            )}
+            
+            <div className="relative pt-1">
+              <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-800">
+                <div 
+                  style={{ width: `${((15 - adTimeLeft) / 15) * 100}%` }}
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-1000"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-white/70 text-sm font-mono">
+              <span>Time Left: {adTimeLeft}s</span>
+              {adRewardReady && <span className="text-emerald-400 font-bold">Reward Ready!</span>}
+            </div>
+
             {adRewardReady ? (
               <button 
                 onClick={handleAdReward}
-                className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 px-4 rounded-full flex items-center gap-2 animate-bounce"
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 animate-bounce transition-colors"
               >
-                Claim Reward & Close
+                Claim 5 Credits & Close
               </button>
             ) : (
-              <div className="text-white font-mono font-semibold bg-black/50 px-3 py-1.5 rounded-full border border-white/20">
-                Reward in {adTimeLeft}s
-              </div>
+              <button 
+                onClick={() => setIsAdPlaying(false)}
+                className="w-full bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white/50 hover:text-white py-3 px-6 rounded-xl transition-colors"
+              >
+                Cancel & Lose Reward
+              </button>
             )}
           </div>
           
-          {/* Close early button */}
-          {!adRewardReady && (
-            <button 
-              onClick={() => setIsAdPlaying(false)}
-              className="absolute top-4 sm:top-6 right-4 sm:right-6 text-white/50 hover:text-white z-10 p-2"
-              title="Close without reward"
-            >
-              ✕
-            </button>
+          {/* If not adsterra, play the sample video background */}
+          {import.meta.env.VITE_AD_NETWORK !== 'adsterra' && (
+            <>
+              <video 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+                className="absolute inset-0 w-full h-full object-contain -z-0 opacity-30"
+                autoPlay
+                muted={false}
+                playsInline
+              />
+              <a 
+                href="https://google.com" 
+                target="_blank" 
+                rel="noreferrer"
+                className="absolute inset-0 z-0 cursor-pointer"
+                title="Visit Sponsor"
+              >
+                <span className="sr-only">Visit Sponsor</span>
+              </a>
+            </>
           )}
-
-          {/* Ad Video */}
-          <div className="flex-1 flex items-center justify-center relative">
-            <video 
-              src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
-              className="w-full h-full object-contain"
-              autoPlay
-              muted={false}
-              playsInline
-            />
-            {/* Click interceptor to open sponsor link instead of pausing */}
-            <a 
-              href="https://google.com" 
-              target="_blank" 
-              rel="noreferrer"
-              className="absolute inset-0 z-0 cursor-pointer"
-              title="Visit Sponsor"
-            >
-              <span className="sr-only">Visit Sponsor</span>
-            </a>
-          </div>
-          
-          {/* Ad Footer Overlay */}
-          <div className="absolute bottom-0 inset-x-0 p-6 sm:p-8 flex items-center justify-between z-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
-            <div>
-              <h2 className="text-white font-bold text-xl sm:text-2xl mb-1">Epic Action Game</h2>
-              <p className="text-white/80 text-sm">Download now and get 500 free gems!</p>
-            </div>
-            <button className="bg-blue-600 text-white font-bold py-2 px-6 rounded-full pointer-events-auto hover:bg-blue-500 transition-colors">
-              Install
-            </button>
-          </div>
         </div>
       )}
 
