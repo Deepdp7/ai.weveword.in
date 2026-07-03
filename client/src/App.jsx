@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import { useAuth } from './context/AuthContext';
@@ -68,6 +68,37 @@ const WhatsAppButton = () => (
 
 function App() {
   const { user, loading } = useAuth();
+
+  // Background preloading of lazy components to make clicks instant and remove lag
+  useEffect(() => {
+    if (!user) return;
+
+    const timer = setTimeout(() => {
+      // PDF & Studio tools
+      import('./pages/PDFTools/PDFHub').catch(() => {});
+      import('./pages/PDFTools/MergePDF').catch(() => {});
+      import('./pages/PDFTools/GenericConverter').catch(() => {});
+      import('./pages/PDFTools/ImagesToPDF').catch(() => {});
+      import('./pages/Studio/Studio').catch(() => {});
+      
+      // Signature, Animator, BG Remover, Image Resizer
+      import('./pages/Signature/Signature').catch(() => {});
+      import('./pages/Animator/Animator').catch(() => {});
+      import('./pages/BgRemover/BgRemover').catch(() => {});
+      import('./pages/ImageResizer/ImageResizer').catch(() => {});
+      
+      // AI & productivity
+      import('./pages/MicroNoteMaker/MicroNoteMaker').catch(() => {});
+      import('./pages/AIMentors/AIMentors').catch(() => {});
+      import('./pages/ProjectBuilder/ProjectBuilder').catch(() => {});
+      import('./pages/Library/Library').catch(() => {});
+      import('./pages/PPTMaker/PPTMaker').catch(() => {});
+      import('./pages/Profile/Profile').catch(() => {});
+      import('./pages/CreditShop/CreditShop').catch(() => {});
+    }, 1500); // 1.5 seconds delay after user is authenticated to avoid blocking initial load
+
+    return () => clearTimeout(timer);
+  }, [user]);
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">Loading...</div>;
