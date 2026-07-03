@@ -14,6 +14,35 @@ const PLAN_COLORS = {
 
 const formatAmount = (paise) => `₹${(paise / 100).toFixed(0)}`;
 
+const AdsterraBanner = ({ containerId }) => {
+  useEffect(() => {
+    const container = document.getElementById(containerId);
+    if (container && !container.hasChildNodes()) {
+      container.innerHTML = '';
+      window.atOptions = {
+        'key' : 'e4f2d2adff35a81bfa15194698f7d390',
+        'format' : 'iframe',
+        'height' : 60,
+        'width' : 468,
+        'params' : {}
+      };
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = '//www.highperformanceformat.com/e4f2d2adff35a81bfa15194698f7d390/invoke.js';
+      container.appendChild(script);
+    }
+  }, [containerId]);
+
+  return (
+    <div className="flex justify-center my-4 overflow-hidden">
+      <div 
+        id={containerId} 
+        className="w-[468px] h-[60px] bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center overflow-hidden shadow-sm"
+      />
+    </div>
+  );
+};
+
 export default function CreditShop() {
   const [balance, setBalance] = useState({ credits: 0, plan: 'free' });
   const [packs, setPacks] = useState({ creditPacks: [], planPacks: [] });
@@ -166,8 +195,6 @@ export default function CreditShop() {
   };
 
   const playDirectLinkAd = () => {
-    const directLink = adConfig.adsterraDirectLink || 'https://google.com';
-    window.open(directLink, '_blank');
     setIsAdPlaying(true);
     setAdTimeLeft(15);
     setAdRewardReady(false);
@@ -306,6 +333,8 @@ export default function CreditShop() {
           </button>
         ))}
       </div>
+
+      <AdsterraBanner containerId="adsterra-banner-shop" />
 
       {/* ── Credit Packs ── */}
       {tab === 'credits' && (
@@ -523,10 +552,11 @@ export default function CreditShop() {
           <div className="max-w-md w-full text-center space-y-6 z-10">
             <div className="bg-yellow-500 text-black font-extrabold text-xs px-3 py-1 rounded w-fit mx-auto">SPONSORED AD</div>
             
-            {import.meta.env.VITE_AD_NETWORK === 'adsterra' ? (
+            {playingAdType === 'adsterra' ? (
               <div className="text-white space-y-4">
-                <h3 className="text-2xl font-bold">Ad Opened In New Tab</h3>
-                <p className="text-gray-400 text-sm">Please check the new tab and wait for the countdown to complete to receive your 5 free credits.</p>
+                <h3 className="text-2xl font-bold">Watch Sponsor Ad Below</h3>
+                <p className="text-gray-400 text-sm">Please keep this window open and wait for the countdown to complete to receive your 5 free credits.</p>
+                <AdsterraBanner containerId="adsterra-banner-modal" />
               </div>
             ) : (
               <div className="text-white space-y-4">
@@ -567,7 +597,7 @@ export default function CreditShop() {
           </div>
           
           {/* If not adsterra, play the sample video background */}
-          {import.meta.env.VITE_AD_NETWORK !== 'adsterra' && (
+          {playingAdType !== 'adsterra' && (
             <>
               <video 
                 src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
