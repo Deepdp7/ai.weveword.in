@@ -1,6 +1,4 @@
-import User from '../models/User.js';
-import Transaction from '../models/Transaction.js';
-import Notification from '../models/Notification.js';
+import { prisma } from '../config/db.js';
 
 // Tool credit costs (mirrors PRD Section 10.2)
 export const TOOL_COSTS = {
@@ -30,52 +28,64 @@ export const deductCredits = async (req, res) => {
   try {
     const { toolKey } = req.body;
     const cost = TOOL_COSTS[toolKey];
+    const userId = req.user.id || req.user._id;
 
     if (cost === undefined) {
       return res.status(400).json({ status: 'error', message: `Unknown tool: ${toolKey}` });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
+    let newCredits = user.credits;
     if (user.credits < cost) {
       // Auto-recharge 1000 credits for testing to prevent 402 errors
-      user.credits = 1000;
+      newCredits = 1000;
     }
 
-    user.credits -= cost;
-    await user.save();
+    newCredits -= cost;
 
-    await Transaction.create({
-      userId: user._id,
-      type: 'tool_usage',
-      description: `Used tool: ${toolKey}`,
-      credits: -cost,
-      balanceAfter: user.credits,
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { credits: newCredits }
+    });
+
+    await prisma.transaction.create({
+      data: {
+        userId: user.id,
+        type: 'tool_usage',
+        description: `Used tool: ${toolKey}`,
+        credits: -cost,
+        balanceAfter: updatedUser.credits,
+      }
     });
 
     if (cost > 0) {
-      await Notification.create({
-        userId: user._id,
-        title: 'Credits Used',
-        message: `Used ${cost} credits for ${toolKey}. Remaining: ${user.credits} credits.`,
-        type: 'info',
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Credits Used',
+          message: `Used ${cost} credits for ${toolKey}. Remaining: ${updatedUser.credits} credits.`,
+          type: 'info',
+        }
       });
     }
 
     // Low credit warning (threshold 20)
-    if (user.credits < 20 && (user.credits + cost) >= 20) {
-      await Notification.create({
-        userId: user._id,
-        title: 'Low Credit Warning',
-        message: `Your credit balance is running low (${user.credits} credits left). Please recharge soon to avoid interruptions.`,
-        type: 'warning',
+    if (user.credits >= 20 && updatedUser.credits < 20) {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Low Credit Warning',
+          message: `Your credit balance is running low (${updatedUser.credits} credits left). Please recharge soon to avoid interruptions.`,
+          type: 'warning',
+        }
       });
     }
 
     res.status(200).json({
       status: 'success',
       creditsDeducted: cost,
-      newBalance: user.credits,
+      newBalance: updatedUser.credits,
     });
   } catch (error) {
     console.error('Deduct credits error:', error);
@@ -89,6 +99,7 @@ export const deductCredits = async (req, res) => {
 export const awardAdCredits = async (req, res) => {
   try {
     const { adType } = req.body; // '15sec' or '30sec'
+    const userId = req.user.id || req.user._id;
 
     const rewards = { '15sec': 5, '30sec': 5 };
     const earned = rewards[adType];
@@ -97,29 +108,34 @@ export const awardAdCredits = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Invalid ad type.' });
     }
 
-    const user = await User.findById(req.user._id);
-    user.credits += earned;
-    await user.save();
-
-    await Transaction.create({
-      userId: user._id,
-      type: 'ad_reward',
-      description: `Watched ${adType} ad`,
-      credits: earned,
-      balanceAfter: user.credits,
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { credits: { increment: earned } }
     });
 
-    await Notification.create({
-      userId: user._id,
-      title: 'Ad Reward Earned',
-      message: `You earned ${earned} credits for watching an ad!`,
-      type: 'success',
+    await prisma.transaction.create({
+      data: {
+        userId: updatedUser.id,
+        type: 'ad_reward',
+        description: `Watched ${adType} ad`,
+        credits: earned,
+        balanceAfter: updatedUser.credits,
+      }
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: updatedUser.id,
+        title: 'Ad Reward Earned',
+        message: `You earned ${earned} credits for watching an ad!`,
+        type: 'success',
+      }
     });
 
     res.status(200).json({
       status: 'success',
       creditsEarned: earned,
-      newBalance: user.credits,
+      newBalance: updatedUser.credits,
     });
   } catch (error) {
     console.error('Ad reward error:', error);
@@ -132,7 +148,11 @@ export const awardAdCredits = async (req, res) => {
 // @access  Private
 export const getCreditBalance = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('credits plan planExpiresAt');
+    const userId = req.user.id || req.user._id;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { credits: true, plan: true, planExpiresAt: true }
+    });
     res.status(200).json({
       status: 'success',
       credits: user.credits,

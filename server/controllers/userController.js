@@ -1,4 +1,4 @@
-import User from '../models/User.js';
+import { prisma } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
 // @desc    Update user profile
@@ -6,18 +6,22 @@ import bcrypt from 'bcryptjs';
 // @access  Private
 export const updateProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const userId = req.user.id || req.user._id;
+    let user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (user) {
-      user.name = req.body.name || user.name;
-      user.avatar = req.body.avatar || user.avatar;
-
-      const updatedUser = await user.save();
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          name: req.body.name || user.name,
+          avatar: req.body.avatar || user.avatar
+        }
+      });
 
       res.status(200).json({
         status: 'success',
         user: {
-          id: updatedUser._id,
+          id: updatedUser.id,
           name: updatedUser.name,
           email: updatedUser.email,
           role: updatedUser.role,
@@ -41,17 +45,22 @@ export const updateProfile = async (req, res) => {
 export const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id || req.user._id;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ status: 'error', message: 'Current and new password are required' });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (user && (await bcrypt.compare(currentPassword, user.passwordHash))) {
       const salt = await bcrypt.genSalt(10);
-      user.passwordHash = await bcrypt.hash(newPassword, salt);
-      await user.save();
+      const passwordHash = await bcrypt.hash(newPassword, salt);
+      
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash }
+      });
 
       res.status(200).json({ status: 'success', message: 'Password updated successfully' });
     } else {
@@ -68,7 +77,11 @@ export const updatePassword = async (req, res) => {
 // @access  Private
 export const getSettings = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('plan credits storageUsed');
+    const userId = req.user.id || req.user._id;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, credits: true, storageUsed: true }
+    });
     
     if (user) {
       res.status(200).json({

@@ -1,25 +1,23 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import dns from 'dns';
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+import { PrismaLibSql } from '@prisma/adapter-libsql';
+import { createClient } from '@libsql/client';
 
-// Fix for Windows DNS SRV lookup issues with MongoDB Atlas
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+const envUrl = process.env.DATABASE_URL;
+const url = (!envUrl || envUrl === 'undefined') ? 'file:./dev.db' : envUrl;
 
-dotenv.config();
+const libsql = createClient({ url });
+const adapter = new PrismaLibSql(libsql);
+const prisma = new PrismaClient({ adapter });
 
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) {
-      console.warn('MONGO_URI is not defined in environment variables. Running without DB.');
-      return;
-    }
-    
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await prisma.$connect();
+    console.log(`SQLite Database Connected via Prisma`);
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
+    console.error(`Error connecting to Database: ${error.message}`);
     process.exit(1);
   }
 };
 
-export default connectDB;
+export { prisma, connectDB };

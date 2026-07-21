@@ -1,5 +1,4 @@
-import FileModel from '../models/File.js';
-import User from '../models/User.js';
+import { prisma } from '../config/db.js';
 import cloudinary from '../config/cloudinary.js';
 import { getFileType } from '../middleware/uploadMiddleware.js';
 
@@ -19,20 +18,24 @@ export const uploadFile = async (req, res) => {
 
     const fileSize = req.file.size || 0;
     const fileType = getFileType(req.file.mimetype);
+    const userId = req.user.id || req.user._id;
 
-    // Save file metadata in MongoDB
-    const newFile = await FileModel.create({
-      userId: req.user._id,
-      toolSource,
-      fileName: req.file.originalname,
-      fileUrl: req.file.path, // Cloudinary URL
-      fileType,
-      size: fileSize,
+    // Save file metadata in database
+    const newFile = await prisma.file.create({
+      data: {
+        userId,
+        toolSource,
+        fileName: req.file.originalname,
+        fileUrl: req.file.path, // Cloudinary URL
+        fileType,
+        size: fileSize,
+      }
     });
 
     // Update user's storage usage
-    await User.findByIdAndUpdate(req.user._id, {
-      $inc: { storageUsed: fileSize }
+    await prisma.user.update({
+      where: { id: userId },
+      data: { storageUsed: { increment: fileSize } }
     });
 
     res.status(201).json({
@@ -51,17 +54,21 @@ export const uploadFile = async (req, res) => {
 export const getMyFiles = async (req, res) => {
   try {
     const { source, type, search } = req.query;
+    const userId = req.user.id || req.user._id;
 
-    const query = {
-      userId: req.user._id,
+    const where = {
+      userId,
       isDeleted: false,
     };
 
-    if (source && source !== 'All') query.toolSource = source;
-    if (type) query.fileType = type;
-    if (search) query.fileName = { $regex: search, $options: 'i' };
+    if (source && source !== 'All') where.toolSource = source;
+    if (type) where.fileType = type;
+    if (search) where.fileName = { contains: search };
 
-    const files = await FileModel.find(query).sort({ createdAt: -1 });
+    const files = await prisma.file.findMany({
+      where,
+      orderBy: { createdAt: 'desc' }
+    });
 
     res.status(200).json({
       status: 'success',
@@ -79,19 +86,25 @@ export const getMyFiles = async (req, res) => {
 // @access  Private
 export const deleteFile = async (req, res) => {
   try {
-    const file = await FileModel.findOne({ _id: req.params.id, userId: req.user._id });
+    const userId = req.user.id || req.user._id;
+    const file = await prisma.file.findFirst({ 
+      where: { id: req.params.id, userId } 
+    });
 
     if (!file) {
       return res.status(404).json({ status: 'error', message: 'File not found.' });
     }
 
     // Mark as deleted (soft delete)
-    file.isDeleted = true;
-    await file.save();
+    await prisma.file.update({
+      where: { id: file.id },
+      data: { isDeleted: true }
+    });
 
     // Free up user storage quota
-    await User.findByIdAndUpdate(req.user._id, {
-      $inc: { storageUsed: -file.size }
+    await prisma.user.update({
+      where: { id: userId },
+      data: { storageUsed: { decrement: file.size } }
     });
 
     res.status(200).json({ status: 'success', message: 'File deleted.' });
@@ -106,7 +119,11 @@ export const deleteFile = async (req, res) => {
 // @access  Private
 export const getStorageInfo = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('storageUsed plan');
+    const userId = req.user.id || req.user._id;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { storageUsed: true, plan: true }
+    });
 
     const planLimits = {
       free: 1 * 1024 * 1024 * 1024,    // 1 GB

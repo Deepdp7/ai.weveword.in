@@ -1,5 +1,4 @@
-import User from '../models/User.js';
-import OTP from '../models/OTP.js';
+import { prisma } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import { sendOTPEmail } from '../utils/emailService.js';
 
@@ -13,7 +12,7 @@ export const sendForgotPasswordOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) {
       // Security: don't reveal if email exists — always return success
       return res.status(200).json({
@@ -23,17 +22,22 @@ export const sendForgotPasswordOTP = async (req, res) => {
     }
 
     // Delete any existing OTPs for this email
-    await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'forgot_password' });
+    await prisma.oTP.deleteMany({ 
+      where: { email: email.toLowerCase(), purpose: 'forgot_password' } 
+    });
 
     // Generate + save new OTP (hashed for security)
     const code = generateOTP();
     const salt = await bcrypt.genSalt(10);
     const hashedCode = await bcrypt.hash(code, salt);
 
-    await OTP.create({
-      email: email.toLowerCase(),
-      code: hashedCode,
-      purpose: 'forgot_password',
+    await prisma.oTP.create({
+      data: {
+        email: email.toLowerCase(),
+        code: hashedCode,
+        purpose: 'forgot_password',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
+      }
     });
 
     // Send the plain OTP via email
@@ -65,44 +69,54 @@ export const verifyOTPAndReset = async (req, res) => {
     }
 
     // Find OTP record
-    const otpRecord = await OTP.findOne({
-      email: email.toLowerCase(),
-      purpose: 'forgot_password',
+    const otpRecord = await prisma.oTP.findFirst({
+      where: { email: email.toLowerCase(), purpose: 'forgot_password' }
     });
 
     if (!otpRecord) {
       return res.status(400).json({ status: 'error', message: 'OTP expired or not found. Please request a new one.' });
     }
+    
+    if (otpRecord.expiresAt && otpRecord.expiresAt < new Date()) {
+      await prisma.oTP.delete({ where: { id: otpRecord.id } });
+      return res.status(400).json({ status: 'error', message: 'OTP expired. Please request a new one.' });
+    }
 
     // Limit brute-force attempts
     if (otpRecord.attempts >= 5) {
-      await OTP.deleteOne({ _id: otpRecord._id });
+      await prisma.oTP.delete({ where: { id: otpRecord.id } });
       return res.status(429).json({ status: 'error', message: 'Too many attempts. Please request a new OTP.' });
     }
 
     // Verify OTP
     const isMatch = await bcrypt.compare(otp, otpRecord.code);
     if (!isMatch) {
-      otpRecord.attempts += 1;
-      await otpRecord.save();
+      await prisma.oTP.update({
+        where: { id: otpRecord.id },
+        data: { attempts: { increment: 1 } }
+      });
       return res.status(400).json({
         status: 'error',
-        message: `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`,
+        message: `Invalid OTP. ${5 - (otpRecord.attempts + 1)} attempts remaining.`,
       });
     }
 
     // OTP is valid — update password
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) {
       return res.status(404).json({ status: 'error', message: 'User not found.' });
     }
 
     const salt = await bcrypt.genSalt(10);
-    user.passwordHash = await bcrypt.hash(newPassword, salt);
-    await user.save();
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+    
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash }
+    });
 
     // Delete used OTP
-    await OTP.deleteOne({ _id: otpRecord._id });
+    await prisma.oTP.delete({ where: { id: otpRecord.id } });
 
     res.status(200).json({
       status: 'success',

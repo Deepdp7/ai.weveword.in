@@ -1,6 +1,6 @@
 import * as pdfService from '../services/pdfService.js';
 import cloudinary from '../config/cloudinary.js';
-import FileModel from '../models/File.js';
+import { prisma } from '../config/db.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -17,13 +17,15 @@ const uploadAndSave = async ({ userId, buffer, fileName, toolSource }) => {
       access_mode: 'public'
     });
 
-    const newFile = await FileModel.create({
-      userId,
-      toolSource,
-      fileName: fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`,
-      fileUrl: result.secure_url,
-      fileType: 'pdf',
-      size: result.bytes
+    const newFile = await prisma.file.create({
+      data: {
+        userId,
+        toolSource,
+        fileName: fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`,
+        fileUrl: result.secure_url,
+        fileType: 'pdf',
+        size: result.bytes
+      }
     });
 
     return newFile;
@@ -59,8 +61,9 @@ export const split = async (req, res) => {
     const extractedBuffer = await pdfService.extractPdfPages(req.file.buffer, ranges);
     
     if (req.user) {
+      const userId = req.user.id || req.user._id;
       const file = await uploadAndSave({
-        userId: req.user._id,
+        userId,
         buffer: extractedBuffer,
         fileName: 'extracted.pdf',
         toolSource: 'pdf'

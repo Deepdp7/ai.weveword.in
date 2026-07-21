@@ -1,15 +1,20 @@
-import Notification from '../models/Notification.js';
+import { prisma } from '../config/db.js';
 
 // @desc    Get all notifications for a user
 // @route   GET /api/notifications
 // @access  Private
 export const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(50); // Get the latest 50 notifications
+    const userId = req.user.id || req.user._id;
+    const notifications = await prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
     
-    const unreadCount = await Notification.countDocuments({ userId: req.user._id, isRead: false });
+    const unreadCount = await prisma.notification.count({ 
+      where: { userId, isRead: false } 
+    });
 
     res.status(200).json({
       status: 'success',
@@ -28,17 +33,18 @@ export const getNotifications = async (req, res) => {
 export const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id || req.user._id;
     
     if (id === 'all') {
-      await Notification.updateMany(
-        { userId: req.user._id, isRead: false },
-        { $set: { isRead: true } }
-      );
+      await prisma.notification.updateMany({
+        where: { userId, isRead: false },
+        data: { isRead: true }
+      });
     } else {
-      await Notification.findOneAndUpdate(
-        { _id: id, userId: req.user._id },
-        { $set: { isRead: true } }
-      );
+      await prisma.notification.updateMany({
+        where: { id, userId },
+        data: { isRead: true }
+      });
     }
 
     res.status(200).json({ status: 'success', message: 'Marked as read' });

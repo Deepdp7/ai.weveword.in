@@ -1,8 +1,7 @@
 import { OpenAI } from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
-import AIChat from '../models/AIChat.js';
-import User from '../models/User.js';
+import { prisma } from '../config/db.js';
 
 const SYSTEM_PROMPT = `
 # SYSTEM ROLE
@@ -183,43 +182,56 @@ export const handleChat = async (req, res) => {
   }
 
   const selectedMentor = mentor || 'sahadev';
+  const userId = req.user.id || req.user._id;
 
   // --- ACCESS CONTROL & CREDIT SYSTEM ---
   try {
-    const user = await User.findById(req.user._id);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const isPro = user.plan === 'pro' || user.plan === 'elite';
     
     if (!isPro) {
       const now = new Date();
-      const lastReset = user.aiDailyUsage?.lastResetAt || new Date(0);
+      const lastReset = user.aiUsageLastResetAt || new Date(0);
       
+      let updateData = {
+        aiUsageSahadev: user.aiUsageSahadev,
+        aiUsageKrishna: user.aiUsageKrishna,
+        aiUsageVedbaash: user.aiUsageVedbaash,
+        aiUsageLastResetAt: user.aiUsageLastResetAt,
+        credits: user.credits
+      };
+
       if (now.toDateString() !== new Date(lastReset).toDateString()) {
-        user.aiDailyUsage = { sahadev: 0, krishna: 0, vedbaash: 0, lastResetAt: now };
+        updateData.aiUsageSahadev = 0;
+        updateData.aiUsageKrishna = 0;
+        updateData.aiUsageVedbaash = 0;
+        updateData.aiUsageLastResetAt = now;
       }
 
-      if (!user.aiDailyUsage) {
-        user.aiDailyUsage = { sahadev: 0, krishna: 0, vedbaash: 0, lastResetAt: now };
-      }
-
-      const currentUsage = user.aiDailyUsage[selectedMentor] || 0;
+      const mentorKey = 'aiUsage' + selectedMentor.charAt(0).toUpperCase() + selectedMentor.slice(1);
+      const currentUsage = updateData[mentorKey] || 0;
 
       if (currentUsage >= 5) {
         if (useCredit) {
-          if (user.credits < 5) {
+          if (updateData.credits < 5) {
             return res.status(402).json({ error: 'INSUFFICIENT_CREDITS', message: "Not enough credits." });
           }
-          user.credits -= 5;
+          updateData.credits -= 5;
         } else {
           return res.status(403).json({ error: 'QUOTA_EXCEEDED', message: `You have reached your daily limit of 5 free messages for ${selectedMentor}.` });
         }
       } else {
         if (!useCredit) {
-          user.aiDailyUsage[selectedMentor] = currentUsage + 1;
+          updateData[mentorKey] = currentUsage + 1;
         }
       }
-      await user.save();
+      
+      await prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      });
     }
   } catch (err) {
     console.error("Access control error:", err);
@@ -302,14 +314,38 @@ export const handleChat = async (req, res) => {
 
     // Save history asynchronously
     const userMessage = messages[messages.length - 1];
-    AIChat.findOneAndUpdate(
-      { user: req.user._id, mentor: selectedMentor },
-      { $push: { messages: { $each: [
-          { role: 'user', content: userMessage.content },
-          { role: 'assistant', content: responseText }
-        ] } } },
-      { upsert: true }
-    ).catch(err => console.error("History save error:", err));
+    (async () => {
+      try {
+        let chat = await prisma.aIChat.findUnique({ 
+          where: { userId_mentor: { userId, mentor: selectedMentor } } 
+        });
+        
+        let msgs = [];
+        if (chat) {
+          msgs = JSON.parse(chat.messages);
+        }
+        
+        msgs.push({ role: 'user', content: userMessage.content });
+        msgs.push({ role: 'assistant', content: responseText });
+        
+        if (chat) {
+          await prisma.aIChat.update({
+            where: { id: chat.id },
+            data: { messages: JSON.stringify(msgs) }
+          });
+        } else {
+          await prisma.aIChat.create({
+            data: {
+              userId,
+              mentor: selectedMentor,
+              messages: JSON.stringify(msgs)
+            }
+          });
+        }
+      } catch (err) {
+        console.error("History save error:", err);
+      }
+    })();
 
     res.json({ text: responseText });
     
@@ -322,8 +358,11 @@ export const handleChat = async (req, res) => {
 export const getHistory = async (req, res) => {
   try {
     const { mentor } = req.params;
-    const chat = await AIChat.findOne({ user: req.user._id, mentor });
-    res.json(chat ? chat.messages : []);
+    const userId = req.user.id || req.user._id;
+    const chat = await prisma.aIChat.findUnique({ 
+      where: { userId_mentor: { userId, mentor } } 
+    });
+    res.json(chat ? JSON.parse(chat.messages) : []);
   } catch (error) {
     console.error("Get history error:", error);
     res.status(500).json({ error: "Failed to fetch history" });
@@ -333,7 +372,10 @@ export const getHistory = async (req, res) => {
 export const clearHistory = async (req, res) => {
   try {
     const { mentor } = req.params;
-    await AIChat.findOneAndDelete({ user: req.user._id, mentor });
+    const userId = req.user.id || req.user._id;
+    await prisma.aIChat.deleteMany({ 
+      where: { userId, mentor } 
+    });
     res.json({ message: "History cleared successfully" });
   } catch (error) {
     console.error("Clear history error:", error);

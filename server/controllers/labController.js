@@ -1,11 +1,35 @@
-import Handwriting from '../models/Handwriting.js';
+import { prisma } from '../config/db.js';
 
 // @desc    Get all handwriting presets for user
 // @route   GET /api/lab/presets
 // @access  Private
 export const getPresets = async (req, res) => {
   try {
-    const presets = await Handwriting.find({ userId: req.user._id }).sort({ createdAt: -1 });
+    const userId = req.user.id || req.user._id;
+    const presetsDB = await prisma.handwriting.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // Map back to expected structure for frontend compatibility
+    const presets = presetsDB.map(p => ({
+      _id: p.id,
+      name: p.name,
+      isDefault: p.isDefault,
+      config: {
+        fontSize: p.fontSize,
+        color: p.color,
+        letterSpacing: p.letterSpacing,
+        lineHeight: p.lineHeight,
+        tilt: p.tilt,
+        roughness: p.roughness,
+        inkColor: p.inkColor,
+        fontFamily: p.fontFamily
+      },
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }));
+
     res.status(200).json({ status: 'success', presets });
   } catch (error) {
     console.error('Get presets error:', error);
@@ -19,12 +43,33 @@ export const getPresets = async (req, res) => {
 export const createPreset = async (req, res) => {
   try {
     const { name, config } = req.body;
+    const userId = req.user.id || req.user._id;
 
-    const preset = await Handwriting.create({
-      userId: req.user._id,
-      name: name || 'New Script',
-      config
+    const presetDB = await prisma.handwriting.create({
+      data: {
+        userId,
+        name: name || 'New Script',
+        ...config // Spread config fields (fontSize, color, etc)
+      }
     });
+
+    const preset = {
+      _id: presetDB.id,
+      name: presetDB.name,
+      isDefault: presetDB.isDefault,
+      config: {
+        fontSize: presetDB.fontSize,
+        color: presetDB.color,
+        letterSpacing: presetDB.letterSpacing,
+        lineHeight: presetDB.lineHeight,
+        tilt: presetDB.tilt,
+        roughness: presetDB.roughness,
+        inkColor: presetDB.inkColor,
+        fontFamily: presetDB.fontFamily
+      },
+      createdAt: presetDB.createdAt,
+      updatedAt: presetDB.updatedAt
+    };
 
     res.status(201).json({ status: 'success', preset });
   } catch (error) {
@@ -39,24 +84,55 @@ export const createPreset = async (req, res) => {
 export const updatePreset = async (req, res) => {
   try {
     const { name, config, isDefault } = req.body;
-    const preset = await Handwriting.findOne({ _id: req.params.id, userId: req.user._id });
+    const userId = req.user.id || req.user._id;
+    
+    const preset = await prisma.handwriting.findFirst({
+      where: { id: req.params.id, userId }
+    });
 
     if (!preset) {
       return res.status(404).json({ status: 'error', message: 'Preset not found.' });
     }
 
-    if (name) preset.name = name;
-    if (config) preset.config = { ...preset.config, ...config };
-    if (isDefault !== undefined) {
-      if (isDefault) {
-        // Set all other presets to not default
-        await Handwriting.updateMany({ userId: req.user._id }, { isDefault: false });
-      }
-      preset.isDefault = isDefault;
+    if (isDefault) {
+      // Set all other presets to not default
+      await prisma.handwriting.updateMany({
+        where: { userId },
+        data: { isDefault: false }
+      });
     }
 
-    await preset.save();
-    res.status(200).json({ status: 'success', preset });
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (config) {
+      Object.assign(updateData, config);
+    }
+    if (isDefault !== undefined) updateData.isDefault = isDefault;
+
+    const updatedDB = await prisma.handwriting.update({
+      where: { id: preset.id },
+      data: updateData
+    });
+
+    const updatedPreset = {
+      _id: updatedDB.id,
+      name: updatedDB.name,
+      isDefault: updatedDB.isDefault,
+      config: {
+        fontSize: updatedDB.fontSize,
+        color: updatedDB.color,
+        letterSpacing: updatedDB.letterSpacing,
+        lineHeight: updatedDB.lineHeight,
+        tilt: updatedDB.tilt,
+        roughness: updatedDB.roughness,
+        inkColor: updatedDB.inkColor,
+        fontFamily: updatedDB.fontFamily
+      },
+      createdAt: updatedDB.createdAt,
+      updatedAt: updatedDB.updatedAt
+    };
+
+    res.status(200).json({ status: 'success', preset: updatedPreset });
   } catch (error) {
     console.error('Update preset error:', error);
     res.status(500).json({ status: 'error', message: 'Could not update handwriting preset.' });
@@ -68,11 +144,19 @@ export const updatePreset = async (req, res) => {
 // @access  Private
 export const deletePreset = async (req, res) => {
   try {
-    const preset = await Handwriting.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    const userId = req.user.id || req.user._id;
+    
+    // Prisma delete requires unique where, but we must verify userId
+    // findFirst -> delete
+    const preset = await prisma.handwriting.findFirst({
+      where: { id: req.params.id, userId }
+    });
 
     if (!preset) {
       return res.status(404).json({ status: 'error', message: 'Preset not found.' });
     }
+
+    await prisma.handwriting.delete({ where: { id: preset.id } });
 
     res.status(200).json({ status: 'success', message: 'Preset deleted.' });
   } catch (error) {

@@ -1,9 +1,6 @@
 import Razorpay from 'razorpay';
 import { createHmac } from 'crypto';
-import Payment from '../models/Payment.js';
-import Transaction from '../models/Transaction.js';
-import User from '../models/User.js';
-import Notification from '../models/Notification.js';
+import { prisma } from '../config/db.js';
 
 let razorpayInstance = null;
 const getRazorpay = () => {
@@ -38,6 +35,7 @@ export const PLAN_PACKS = {
 export const createOrder = async (req, res) => {
   try {
     const { packId, type } = req.body; // type: 'credits' or 'plan'
+    const userId = req.user.id || req.user._id;
 
     const packs = type === 'plan' ? PLAN_PACKS : CREDIT_PACKS;
     const pack = packs[packId];
@@ -49,9 +47,9 @@ export const createOrder = async (req, res) => {
     const options = {
       amount: pack.amount, // amount in paise
       currency: 'INR',
-      receipt: `rcpt_${req.user._id.toString().slice(-6)}_${Date.now()}`,
+      receipt: `rcpt_${userId.toString().slice(-6)}_${Date.now()}`,
       notes: {
-        userId: req.user._id.toString(),
+        userId: userId.toString(),
         packId: String(packId),
         type: String(type),
         credits: String(pack.credits),
@@ -61,14 +59,16 @@ export const createOrder = async (req, res) => {
     const order = await getRazorpay().orders.create(options);
 
     // Save pending payment record
-    await Payment.create({
-      userId: req.user._id,
-      type: type === 'plan' ? 'subscription' : 'credit_pack',
-      amount: pack.amount,
-      credits: pack.credits,
-      planId: type === 'plan' ? pack.plan : null,
-      razorpayOrderId: order.id,
-      status: 'created',
+    await prisma.payment.create({
+      data: {
+        userId: userId,
+        type: type === 'plan' ? 'subscription' : 'credit_pack',
+        amount: pack.amount,
+        credits: pack.credits,
+        planId: type === 'plan' ? pack.plan : null,
+        razorpayOrderId: order.id,
+        status: 'created',
+      }
     });
 
     res.status(201).json({
@@ -112,52 +112,67 @@ export const verifyPayment = async (req, res) => {
     }
 
     // Find matching payment record
-    const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
+    const payment = await prisma.payment.findFirst({
+      where: { razorpayOrderId: razorpay_order_id }
+    });
     if (!payment) {
       return res.status(404).json({ status: 'error', message: 'Payment record not found.' });
     }
 
     // Mark payment captured
-    payment.razorpayPaymentId = razorpay_payment_id;
-    payment.status = 'captured';
-    await payment.save();
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        razorpayPaymentId: razorpay_payment_id,
+        status: 'captured'
+      }
+    });
 
     // Credit user's account
-    const user = await User.findById(payment.userId);
-    const balanceBefore = user.credits;
-    user.credits += payment.credits;
+    const user = await prisma.user.findUnique({ where: { id: payment.userId } });
+    
+    let updateData = {
+      credits: { increment: payment.credits }
+    };
 
     // If subscription, update plan & expiry (30 days from now)
     if (payment.type === 'subscription' && payment.planId) {
-      user.plan = payment.planId;
-      user.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      updateData.plan = payment.planId;
+      updateData.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     }
 
-    await user.save();
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: updateData
+    });
 
     // Log transaction in credit ledger
-    await Transaction.create({
-      userId: user._id,
-      type: payment.type === 'subscription' ? 'subscription' : 'purchase',
-      description: `Purchased ${payment.credits} credits`,
-      credits: payment.credits,
-      balanceAfter: user.credits,
-      razorpayOrderId: razorpay_order_id,
-      razorpayPaymentId: razorpay_payment_id,
+    await prisma.transaction.create({
+      data: {
+        userId: updatedUser.id,
+        type: payment.type === 'subscription' ? 'subscription' : 'purchase',
+        description: `Purchased ${payment.credits} credits`,
+        credits: payment.credits,
+        balanceAfter: updatedUser.credits,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+      }
     });
 
     // Create Notification
-    await Notification.create({
-      userId: user._id,
-      title: 'Payment Successful',
-      message: `Your payment for ${payment.credits} credits was successful! New balance is ${user.credits} credits.`,
-      type: 'success',
+    await prisma.notification.create({
+      data: {
+        userId: updatedUser.id,
+        title: 'Payment Successful',
+        message: `Your payment for ${payment.credits} credits was successful! New balance is ${updatedUser.credits} credits.`,
+        type: 'success',
+      }
     });
 
     res.status(200).json({
       status: 'success',
       message: `Payment verified! ${payment.credits} credits added.`,
-      newBalance: user.credits,
+      newBalance: updatedUser.credits,
     });
   } catch (error) {
     console.error('Verify payment error:', error);
@@ -170,9 +185,12 @@ export const verifyPayment = async (req, res) => {
 // @access  Private
 export const getTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({ userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(50);
+    const userId = req.user.id || req.user._id;
+    const transactions = await prisma.transaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
 
     res.status(200).json({
       status: 'success',

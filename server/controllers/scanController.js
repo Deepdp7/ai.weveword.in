@@ -1,11 +1,12 @@
 import cloudinary from '../config/cloudinary.js';
-import File from '../models/File.js';
+import { prisma } from '../config/db.js';
 import { deductCredits } from '../utils/creditManager.js';
 
 export const enhanceDocument = async (req, res) => {
   try {
     const { image, settings } = req.body; // base64 or url
     const { contrast, brightness, grayscale } = settings || { contrast: 100, brightness: 100, grayscale: 0 };
+    const userId = req.user.id || req.user._id;
 
     if (!image) return res.status(400).json({ error: 'No image provided.' });
 
@@ -26,21 +27,23 @@ export const enhanceDocument = async (req, res) => {
     }
 
     const result = await cloudinary.uploader.upload(image, {
-      folder: `waveword-ai/users/${req.user._id}/scan`,
+      folder: `waveword-ai/users/${userId}/scan`,
       transformation
     });
 
     // Save to library
-    const newFile = await File.create({
-      userId: req.user._id,
-      toolSource: 'scan',
-      fileName: `Restored_${Date.now()}.jpg`,
-      fileUrl: result.secure_url,
-      fileType: 'jpg',
-      size: result.bytes
+    const newFile = await prisma.file.create({
+      data: {
+        userId: userId,
+        toolSource: 'scan',
+        fileName: `Restored_${Date.now()}.jpg`,
+        fileUrl: result.secure_url,
+        fileType: 'jpg',
+        size: result.bytes
+      }
     });
 
-    await deductCredits(req.user._id, 5, 'scan', 'Enhanced scanned document');
+    await deductCredits(userId, 5, 'scan', 'Enhanced scanned document');
 
     res.status(200).json({ 
       status: 'success', 

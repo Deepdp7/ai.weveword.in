@@ -1,5 +1,4 @@
-import User from '../models/User.js';
-import Transaction from '../models/Transaction.js';
+import { prisma } from '../config/db.js';
 
 /**
  * Deducts credits from a user's account and logs the transaction.
@@ -12,7 +11,7 @@ import Transaction from '../models/Transaction.js';
 export const deductCredits = async (userId, amount, toolSource, description) => {
   if (amount <= 0) return;
 
-  const user = await User.findById(userId);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error('User not found');
 
   if (user.credits < amount) {
@@ -20,18 +19,21 @@ export const deductCredits = async (userId, amount, toolSource, description) => 
   }
 
   // Deduct credits
-  user.credits -= amount;
-  await user.save();
-
-  // Log transaction
-  await Transaction.create({
-    userId: user._id,
-    type: 'tool_usage',
-    credits: -amount,
-    amount: 0, 
-    description: description || `Used ${toolSource}`,
-    status: 'completed'
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { credits: { decrement: amount } }
   });
 
-  return user.credits;
+  // Log transaction
+  await prisma.transaction.create({
+    data: {
+      userId: user.id,
+      type: 'tool_usage',
+      credits: -amount,
+      balanceAfter: updatedUser.credits,
+      description: description || `Used ${toolSource}`
+    }
+  });
+
+  return updatedUser.credits;
 };

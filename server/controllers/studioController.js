@@ -1,5 +1,4 @@
-import Project from '../models/Project.js';
-import File from '../models/File.js';
+import { prisma } from '../config/db.js';
 import * as pdfService from '../services/pdfService.js';
 import cloudinary from '../config/cloudinary.js';
 import mammoth from 'mammoth';
@@ -312,7 +311,7 @@ export const exportPdf = async (req, res) => {
     const pdfBuffer = await pdfService.imagesToPdf(pageBuffers, true); // Added true for 'buffers' mode
 
     // Deduct Credits
-    await deductCredits(req.user._id, 10, 'studio', 'Exported Handwriting to PDF');
+    await deductCredits(req.user.id || req.user._id, 10, 'studio', 'Exported Handwriting to PDF');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=Waveword AI_Export.pdf');
@@ -329,24 +328,44 @@ export const exportPdf = async (req, res) => {
 export const saveProject = async (req, res) => {
   try {
     const { title, sections, projectId } = req.body;
+    const userId = req.user.id || req.user._id;
     let project;
 
+    const formattedSections = sections.map((s, index) => ({
+      sectionId: s.id || s.sectionId || `sec_${index}`,
+      title: s.title || '',
+      order: s.order ?? index,
+      content: s.content || ''
+    }));
+
     if (projectId) {
-      project = await Project.findOneAndUpdate(
-        { _id: projectId, userId: req.user._id },
-        { title, sections },
-        { new: true }
-      );
+      project = await prisma.project.update({
+        where: { id: projectId },
+        data: {
+          title,
+          sections: {
+            deleteMany: {},
+            create: formattedSections
+          }
+        },
+        include: { sections: true }
+      });
     } else {
-      project = await Project.create({
-        userId: req.user._id,
-        title,
-        sections
+      project = await prisma.project.create({
+        data: {
+          userId,
+          title,
+          sections: {
+            create: formattedSections
+          }
+        },
+        include: { sections: true }
       });
     }
 
     res.status(200).json({ status: 'success', project });
   } catch (error) {
+    console.error('Save project error:', error);
     res.status(500).json({ error: 'Failed to save project.' });
   }
 };
@@ -355,7 +374,12 @@ export const saveProject = async (req, res) => {
 export const exportProject = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const project = await Project.findOne({ _id: projectId, userId: req.user._id });
+    const userId = req.user.id || req.user._id;
+    
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId },
+      include: { sections: { orderBy: { order: 'asc' } } }
+    });
     
     if (!project) return res.status(404).json({ error: 'Project not found.' });
 
@@ -374,20 +398,22 @@ export const exportProject = async (req, res) => {
     const dataUri = `data:application/pdf;base64,${base64Data}`;
 
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: `waveword-ai/users/${req.user._id}/projects`,
+      folder: `waveword-ai/users/${userId}/projects`,
       resource_type: 'image',
       type: 'upload',
       access_mode: 'public'
     });
 
     // Save to Library
-    const newFile = await File.create({
-      userId: req.user._id,
-      toolSource: 'project',
-      fileName: `${project.title}.pdf`,
-      fileUrl: result.secure_url,
-      fileType: 'pdf',
-      size: result.bytes
+    const newFile = await prisma.file.create({
+      data: {
+        userId: userId,
+        toolSource: 'project',
+        fileName: `${project.title}.pdf`,
+        fileUrl: result.secure_url,
+        fileType: 'pdf',
+        size: result.bytes
+      }
     });
 
     res.status(200).json({ 
@@ -405,9 +431,15 @@ export const exportProject = async (req, res) => {
 // Get user projects
 export const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({ userId: req.user._id, isDeleted: false }).sort({ updatedAt: -1 });
+    const userId = req.user.id || req.user._id;
+    const projects = await prisma.project.findMany({
+      where: { userId, isDeleted: false },
+      include: { sections: { orderBy: { order: 'asc' } } },
+      orderBy: { updatedAt: 'desc' }
+    });
     res.status(200).json({ status: 'success', projects });
   } catch (error) {
+    console.error('Fetch projects error:', error);
     res.status(500).json({ error: 'Failed to fetch projects.' });
   }
 };
@@ -446,7 +478,7 @@ export const extractText = async (req, res) => {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     // Deduct Credits
-    await deductCredits(req.user._id, 10, 'studio', 'Extracted text from document');
+    await deductCredits(req.user.id || req.user._id, 10, 'studio', 'Extracted text from document');
 
     res.status(200).json({ status: 'success', text: extractedText });
   } catch (error) {

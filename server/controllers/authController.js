@@ -1,10 +1,8 @@
-import User from '../models/User.js';
+import { prisma } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import generateToken from '../utils/generateToken.js';
 import { sendWelcomeEmail } from '../utils/emailService.js';
 import crypto from 'crypto';
-import Transaction from '../models/Transaction.js';
-import Notification from '../models/Notification.js';
 
 // @desc    Register a new user
 // @route   POST /api/auth/signup
@@ -14,7 +12,7 @@ export const signupUser = async (req, res) => {
     const { name, email, password, referralCode } = req.body;
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
       return res.status(400).json({ status: 'error', message: 'User already exists' });
     }
@@ -23,7 +21,7 @@ export const signupUser = async (req, res) => {
     let initialCredits = 100;
 
     if (referralCode) {
-      referrer = await User.findOne({ referralCode });
+      referrer = await prisma.user.findUnique({ where: { referralCode } });
       if (referrer) {
         initialCredits = 120;
       }
@@ -37,47 +35,58 @@ export const signupUser = async (req, res) => {
     const userReferralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
     // Create user
-    const user = await User.create({
-      name,
-      email,
-      passwordHash,
-      plan: 'free',
-      credits: initialCredits,
-      referralCode: userReferralCode,
-      referredBy: referrer ? referrer._id : null
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        plan: 'free',
+        credits: initialCredits,
+        referralCode: userReferralCode,
+        referredById: referrer ? referrer.id : null
+      }
     });
 
     if (user) {
       // Transaction for new user
-      await Transaction.create({
-        userId: user._id,
-        type: 'bonus',
-        description: referrer ? 'Signup bonus with referral' : 'Signup bonus',
-        credits: initialCredits,
-        balanceAfter: initialCredits
+      await prisma.transaction.create({
+        data: {
+          userId: user.id,
+          type: 'bonus',
+          description: referrer ? 'Signup bonus with referral' : 'Signup bonus',
+          credits: initialCredits,
+          balanceAfter: initialCredits
+        }
       });
 
       // Reward referrer
       if (referrer) {
-        referrer.credits += 100;
-        await referrer.save();
-        await Transaction.create({
-          userId: referrer._id,
-          type: 'referral',
-          description: `Referral bonus for inviting ${user.name}`,
-          credits: 100,
-          balanceAfter: referrer.credits
+        await prisma.user.update({
+          where: { id: referrer.id },
+          data: { credits: { increment: 100 } }
+        });
+        
+        await prisma.transaction.create({
+          data: {
+            userId: referrer.id,
+            type: 'referral',
+            description: `Referral bonus for inviting ${user.name}`,
+            credits: 100,
+            balanceAfter: referrer.credits + 100
+          }
         });
       }
 
-      const token = generateToken(res, user._id);
+      const token = generateToken(res, user.id);
 
       // Create welcome / ad notification
-      await Notification.create({
-        userId: user._id,
-        title: 'Welcome to Waveword AI!',
-        message: 'Explore our premium AI tools like Studio, PDF Suite, and AI Video Animator today!',
-        type: 'ad'
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Welcome to Waveword AI!',
+          message: 'Explore our premium AI tools like Studio, PDF Suite, and AI Video Animator today!',
+          type: 'ad'
+        }
       });
 
       // Fire welcome email asynchronously
@@ -88,7 +97,7 @@ export const signupUser = async (req, res) => {
       res.status(201).json({
         status: 'success',
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
@@ -115,7 +124,7 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    let user = await prisma.user.findUnique({ where: { email } });
 
     if (user && (await bcrypt.compare(password, user.passwordHash))) {
       
@@ -123,21 +132,25 @@ export const loginUser = async (req, res) => {
         return res.status(403).json({ status: 'error', message: 'Account is banned. Contact support.' });
       }
 
+      const updateData = { lastLoginAt: new Date() };
+
       // Auto-promote admin based on .env
       if (user.email === process.env.ADMIN_EMAIL && user.role !== 'admin') {
-        user.role = 'admin';
-        // Need to save before generating token so the user object returned has the right role
+        updateData.role = 'admin';
+        user.role = 'admin'; // update local object
       }
 
-      user.lastLoginAt = new Date();
-      await user.save();
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: updateData
+      });
 
-      const token = generateToken(res, user._id);
+      const token = generateToken(res, user.id);
 
       res.status(200).json({
         status: 'success',
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
@@ -173,16 +186,24 @@ export const logoutUser = (req, res) => {
 // @access  Private
 export const getUserProfile = async (req, res) => {
   try {
-    let user = await User.findById(req.user._id).select('-passwordHash');
+    // Note: req.user structure depends on authMiddleware (assumed req.user.id or req.user._id)
+    const userId = req.user.id || req.user._id;
+    let user = await prisma.user.findUnique({ where: { id: userId } });
+    
     if (user) {
       // Auto-generate for legacy users missing a code
       if (!user.referralCode) {
-        user.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-        await user.save();
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { referralCode: crypto.randomBytes(4).toString('hex').toUpperCase() }
+        });
       }
+      
+      const { passwordHash, ...userWithoutPassword } = user;
+      
       res.status(200).json({
         status: 'success',
-        user
+        user: userWithoutPassword
       });
     } else {
       res.status(404).json({ status: 'error', message: 'User not found' });

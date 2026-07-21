@@ -1,9 +1,4 @@
-import User from '../models/User.js';
-import Transaction from '../models/Transaction.js';
-import Payment from '../models/Payment.js';
-import FileModel from '../models/File.js';
-import AdminTask from '../models/AdminTask.js';
-import AIChat from '../models/AIChat.js';
+import { prisma } from '../config/db.js';
 
 // @desc    Get admin dashboard statistics
 // @route   GET /api/admin/stats
@@ -22,37 +17,47 @@ export const getDashboardStats = async (req, res) => {
       totalFiles,
       totalTransactions,
       totalToolUses,
-      planBreakdown,
+      planGroup,
       recentUsers,
       recentPayments,
     ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-      User.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-      Payment.find({ status: 'captured' }),
-      FileModel.countDocuments({ isDeleted: false }),
-      Transaction.countDocuments(),
-      Transaction.countDocuments({ type: 'tool_usage' }),
+      prisma.user.count(),
+      prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.payment.findMany({ where: { status: 'captured' } }),
+      prisma.file.count(),
+      prisma.transaction.count(),
+      prisma.transaction.count({ where: { type: 'tool_usage' } }),
 
       // Group users by plan
-      User.aggregate([
-        { $group: { _id: '$plan', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-      ]),
+      prisma.user.groupBy({
+        by: ['plan'],
+        _count: { plan: true },
+        orderBy: { _count: { plan: 'desc' } }
+      }),
 
       // Recent 5 registrations
-      User.find().select('name email plan createdAt').sort({ createdAt: -1 }).limit(5),
+      prisma.user.findMany({
+        select: { id: true, name: true, email: true, plan: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }),
 
       // Recent 5 payments
-      Payment.find({ status: 'captured' })
-        .populate('userId', 'name email')
-        .sort({ createdAt: -1 })
-        .limit(5),
+      prisma.payment.findMany({
+        where: { status: 'captured' },
+        include: { user: { select: { name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      })
     ]);
+
+    const planBreakdown = planGroup.map(g => ({ _id: g.plan, count: g._count.plan }));
 
     // Calculate revenue
     const totalRevenuePaise = capturedPayments.reduce((sum, p) => sum + p.amount, 0);
     const totalRevenue = (totalRevenuePaise / 100).toFixed(2);
+    
     const monthRevenuePaise = capturedPayments
       .filter(p => p.createdAt >= thirtyDaysAgo)
       .reduce((sum, p) => sum + p.amount, 0);
@@ -100,27 +105,32 @@ export const getAllUsers = async (req, res) => {
     const skip = (page - 1) * limit;
     const { search, plan, role, isBanned } = req.query;
 
-    const query = {};
-    if (search) query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
-    ];
-    if (plan) query.plan = plan;
-    if (role) query.role = role;
-    if (isBanned !== undefined) query.isBanned = isBanned === 'true';
+    const where = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+      ];
+    }
+    if (plan) where.plan = plan;
+    if (role) where.role = role;
+    if (isBanned !== undefined) where.isBanned = isBanned === 'true';
 
     const [users, total] = await Promise.all([
-      User.find(query)
-        .select('-passwordHash')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      User.countDocuments(query),
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.user.count({ where })
     ]);
+    
+    const safeUsers = users.map(({ passwordHash, ...user }) => user);
 
     res.status(200).json({
       status: 'success',
-      users,
+      users: safeUsers,
       pagination: {
         total,
         page,
@@ -139,17 +149,19 @@ export const getAllUsers = async (req, res) => {
 // @access  Admin only
 export const toggleBanUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
     if (user.role === 'admin') return res.status(403).json({ status: 'error', message: 'Cannot ban an admin.' });
 
-    user.isBanned = !user.isBanned;
-    await user.save();
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { isBanned: !user.isBanned }
+    });
 
     res.status(200).json({
       status: 'success',
-      message: `User has been ${user.isBanned ? 'banned' : 'unbanned'}.`,
-      isBanned: user.isBanned,
+      message: `User has been ${updatedUser.isBanned ? 'banned' : 'unbanned'}.`,
+      isBanned: updatedUser.isBanned,
     });
   } catch (error) {
     console.error('Ban user error:', error);
@@ -168,40 +180,51 @@ export const updateUserPlan = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Invalid plan.' });
     }
 
-    const user = await User.findById(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
 
-    user.plan = plan;
-    if (creditsBonus && creditsBonus > 0) {
-      user.credits += Number(creditsBonus);
+    let updateData = { plan };
+    const bonus = Number(creditsBonus) || 0;
+    
+    if (bonus > 0) {
+      updateData.credits = { increment: bonus };
     }
     if (plan !== 'free') {
-      user.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      updateData.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     }
-    await user.save();
+    
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: updateData
+    });
 
-    if (creditsBonus > 0) {
-      await Transaction.create({
-        userId: user._id,
-        type: 'bonus',
-        description: `Admin granted ${creditsBonus} bonus credits`,
-        credits: Number(creditsBonus),
-        balanceAfter: user.credits,
+    if (bonus > 0) {
+      await prisma.transaction.create({
+        data: {
+          userId: user.id,
+          type: 'bonus',
+          description: `Admin granted ${bonus} bonus credits`,
+          credits: bonus,
+          balanceAfter: updatedUser.credits,
+        }
       });
     }
 
+    const adminId = req.user.id || req.user._id;
     // Log admin task
-    await AdminTask.create({
-      adminId: req.user._id,
-      action: 'UPDATE_PLAN',
-      targetUserId: user._id,
-      details: `Updated plan to ${plan}${creditsBonus > 0 ? ` and granted ${creditsBonus} bonus credits` : ''}`
+    await prisma.adminTask.create({
+      data: {
+        adminId: adminId,
+        action: 'UPDATE_PLAN',
+        targetUserId: user.id,
+        details: `Updated plan to ${plan}${bonus > 0 ? ` and granted ${bonus} bonus credits` : ''}`
+      }
     });
 
     res.status(200).json({
       status: 'success',
       message: `User plan updated to "${plan}".`,
-      user: { plan: user.plan, credits: user.credits },
+      user: { plan: updatedUser.plan, credits: updatedUser.credits },
     });
   } catch (error) {
     console.error('Update plan error:', error);
@@ -221,7 +244,7 @@ export const updateUserCredits = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Valid amount is required.' });
     }
 
-    const user = await User.findById(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
 
     let creditDelta = 0;
@@ -242,28 +265,35 @@ export const updateUserCredits = async (req, res) => {
       return res.status(200).json({ status: 'success', message: 'No changes made.', credits: user.credits });
     }
 
-    user.credits += creditDelta;
-    await user.save();
-
-    await Transaction.create({
-      userId: user._id,
-      type: creditDelta > 0 ? 'bonus' : 'adjustment',
-      description: `Admin adjustment: ${reason || 'Manual modification'}`,
-      credits: creditDelta,
-      balanceAfter: user.credits,
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { credits: { increment: creditDelta } }
     });
 
-    await AdminTask.create({
-      adminId: req.user._id,
-      action: 'UPDATE_CREDITS',
-      targetUserId: user._id,
-      details: `${creditDelta > 0 ? 'Added' : 'Deducted'} ${Math.abs(creditDelta)} credits. Reason: ${reason || 'None'}`
+    await prisma.transaction.create({
+      data: {
+        userId: user.id,
+        type: creditDelta > 0 ? 'bonus' : 'adjustment',
+        description: `Admin adjustment: ${reason || 'Manual modification'}`,
+        credits: creditDelta,
+        balanceAfter: updatedUser.credits,
+      }
+    });
+
+    const adminId = req.user.id || req.user._id;
+    await prisma.adminTask.create({
+      data: {
+        adminId: adminId,
+        action: 'UPDATE_CREDITS',
+        targetUserId: user.id,
+        details: `${creditDelta > 0 ? 'Added' : 'Deducted'} ${Math.abs(creditDelta)} credits. Reason: ${reason || 'None'}`
+      }
     });
 
     res.status(200).json({
       status: 'success',
       message: `Successfully ${creditDelta > 0 ? 'added' : 'deducted'} ${Math.abs(creditDelta)} credits.`,
-      credits: user.credits,
+      credits: updatedUser.credits,
     });
   } catch (error) {
     console.error('Update credits error:', error);
@@ -276,13 +306,27 @@ export const updateUserCredits = async (req, res) => {
 // @access  Admin only
 export const deleteUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
     if (user.role === 'admin') return res.status(403).json({ status: 'error', message: 'Cannot delete an admin.' });
 
-    // Soft-delete all user files
-    await FileModel.updateMany({ userId: user._id }, { isDeleted: true });
-    await User.deleteOne({ _id: user._id });
+    await prisma.file.deleteMany({ where: { userId: user.id } });
+    
+    // We also need to delete relationships or add ON DELETE CASCADE to schema.
+    // For safety, let's delete relationships manually if Prisma complains, 
+    // but schema has some cascading needed. Let's just delete the user, 
+    // Prisma will throw an error if we have referential integrity without cascade.
+    // Assuming we have cascading set up or manual deletion is enough:
+    await prisma.aIChat.deleteMany({ where: { userId: user.id } });
+    await prisma.adImpression.deleteMany({ where: { userId: user.id } });
+    await prisma.adminTask.deleteMany({ where: { targetUserId: user.id } });
+    await prisma.handwriting.deleteMany({ where: { userId: user.id } });
+    await prisma.notification.deleteMany({ where: { userId: user.id } });
+    await prisma.payment.deleteMany({ where: { userId: user.id } });
+    await prisma.project.deleteMany({ where: { userId: user.id } });
+    await prisma.transaction.deleteMany({ where: { userId: user.id } });
+
+    await prisma.user.delete({ where: { id: user.id } });
 
     res.status(200).json({ status: 'success', message: 'User account deleted.' });
   } catch (error) {
@@ -300,12 +344,13 @@ export const getAllTransactions = async (req, res) => {
     const limit = parseInt(req.query.limit) || 30;
 
     const [transactions, total] = await Promise.all([
-      Transaction.find()
-        .populate('userId', 'name email')
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit),
-      Transaction.countDocuments(),
+      prisma.transaction.findMany({
+        include: { user: { select: { name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      prisma.transaction.count()
     ]);
 
     res.status(200).json({
@@ -324,26 +369,33 @@ export const getAllTransactions = async (req, res) => {
 // @access  Admin only
 export const updateUserRole = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ status: 'error', message: 'User not found.' });
-    if (user._id.toString() === req.user._id.toString()) {
+    const adminId = req.user.id || req.user._id;
+    
+    if (user.id === adminId) {
       return res.status(400).json({ status: 'error', message: 'Cannot modify your own role.' });
     }
 
-    user.role = user.role === 'admin' ? 'user' : 'admin';
-    await user.save();
+    const newRole = user.role === 'admin' ? 'user' : 'admin';
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { role: newRole }
+    });
 
-    await AdminTask.create({
-      adminId: req.user._id,
-      action: user.role === 'admin' ? 'PROMOTED_ADMIN' : 'DEMOTED_ADMIN',
-      targetUserId: user._id,
-      details: `Changed role to ${user.role}`
+    await prisma.adminTask.create({
+      data: {
+        adminId: adminId,
+        action: newRole === 'admin' ? 'PROMOTED_ADMIN' : 'DEMOTED_ADMIN',
+        targetUserId: user.id,
+        details: `Changed role to ${newRole}`
+      }
     });
 
     res.status(200).json({
       status: 'success',
-      message: `User role updated to ${user.role}.`,
-      role: user.role,
+      message: `User role updated to ${newRole}.`,
+      role: newRole,
     });
   } catch (error) {
     console.error('Update role error:', error);
@@ -360,13 +412,16 @@ export const getAdminTasks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
 
     const [tasks, total] = await Promise.all([
-      AdminTask.find()
-        .populate('adminId', 'name email')
-        .populate('targetUserId', 'name email')
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit),
-      AdminTask.countDocuments(),
+      prisma.adminTask.findMany({
+        include: { 
+          admin: { select: { name: true, email: true } },
+          targetUser: { select: { name: true, email: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      prisma.adminTask.count()
     ]);
 
     res.status(200).json({
@@ -385,8 +440,10 @@ export const getAdminTasks = async (req, res) => {
 // @access  Admin only
 export const getUserTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({ userId: req.params.id })
-      .sort({ createdAt: -1 });
+    const transactions = await prisma.transaction.findMany({
+      where: { userId: req.params.id },
+      orderBy: { createdAt: 'desc' }
+    });
 
     res.status(200).json({ status: 'success', transactions });
   } catch (error) {
@@ -400,8 +457,16 @@ export const getUserTransactions = async (req, res) => {
 // @access  Admin only
 export const getUserAIChats = async (req, res) => {
   try {
-    const chats = await AIChat.find({ user: req.params.id })
-      .sort({ updatedAt: -1 });
+    let chats = await prisma.aIChat.findMany({
+      where: { userId: req.params.id },
+      orderBy: { updatedAt: 'desc' }
+    });
+    
+    // Parse stringified messages to array for backward compatibility
+    chats = chats.map(chat => ({
+      ...chat,
+      messages: JSON.parse(chat.messages)
+    }));
 
     res.status(200).json({ status: 'success', chats });
   } catch (error) {

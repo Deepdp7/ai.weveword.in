@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import { prisma } from '../config/db.js';
 
 export const protect = async (req, res, next) => {
   let token;
@@ -20,7 +20,29 @@ export const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    const user = await User.findById(decoded.id).select('-passwordHash');
+    // Select all except passwordHash
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatar: true,
+        bio: true,
+        phone: true,
+        isVerified: true,
+        plan: true,
+        planExpiresAt: true,
+        credits: true,
+        storageUsed: true,
+        isBanned: true,
+        referralCode: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
     if (!user) {
       return res.status(401).json({ status: 'error', message: 'User not found' });
     }
